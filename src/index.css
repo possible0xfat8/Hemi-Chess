@@ -2,39 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Binance-inspired crypto portfolio design system */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 218 19% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 218 19% 11%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 218 19% 11%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 45 100% 60%;
+    --primary-foreground: 218 19% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 218 12% 15%;
+    --secondary-foreground: 0 0% 85%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 218 12% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 100% 60%;
+    --accent-foreground: 218 19% 8%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 218 12% 18%;
+    --input: 218 12% 18%;
+    --ring: 45 100% 60%;
+
+    /* Custom tokens for crypto portfolio */
+    --profit: 120 60% 50%;
+    --loss: 0 75% 60%;
+    --neutral: 0 0% 60%;
+    
+    --gradient-gold: linear-gradient(135deg, hsl(45 100% 60%), hsl(45 90% 70%));
+    --gradient-dark: linear-gradient(135deg, hsl(218 19% 11%), hsl(218 19% 8%));
+    --shadow-glow: 0 0 20px hsl(45 100% 60% / 0.1);
+    --shadow-card: 0 4px 12px hsl(218 19% 4% / 0.4);
 
     --radius: 0.5rem;
 
