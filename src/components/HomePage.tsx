@@ -173,7 +173,7 @@ export function HomePage() {
               aria-hidden="true"
               className="h-full w-full object-cover object-right"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] from-10% via-[color-mix(in_oklab,var(--bg-base)_75%,transparent)] via-55% to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[color-mix(in_oklab,var(--bg-base)_62%,transparent)] to-transparent" />
           </div>
 
           <div className="relative z-10 flex min-h-[240px] flex-col justify-center gap-4 p-5 sm:min-h-[280px] sm:p-8">
