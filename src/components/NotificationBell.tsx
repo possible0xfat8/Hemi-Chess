@@ -24,6 +24,7 @@ export function NotificationBell() {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
+    return undefined;
   }, [isOpen]);
 
   const handleAcceptFriendRequest = async (notificationId: number, friendshipId: number) => {
