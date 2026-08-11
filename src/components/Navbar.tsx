@@ -67,29 +67,25 @@ export function Navbar() {
           })}
         </div>
 
-        {/* Mobile Navigation - Icons Only */}
-        <div className="md:hidden flex items-center gap-1.5 shrink-0">
-          {links.map((l) => {
-            const Icon = l.icon
-            return (
-              <Link
-                key={l.to}
-                to={l.to}
-                className={`flex items-center justify-center h-10 w-10 rounded-lg transition-all ${
-                  pathname === l.to
-                    ? 'bg-orange-soft text-orange'
-                    : 'text-ink-muted hover:text-ink hover:bg-[var(--surface-strong)]'
-                }`}
-                title={l.label}
-              >
-                <Icon className="w-5 h-5" />
-              </Link>
-            )
-          })}
+        {/* Mobile Navigation - Icons Only (bottom nav covers main links; keep admin only) */}
+        <div className="md:hidden flex items-center gap-1 shrink-0">
+          {isAdmin && (
+            <Link
+              to={adminLink.to}
+              className={`flex items-center justify-center h-9 w-9 rounded-lg transition-all ${
+                pathname === adminLink.to
+                  ? 'bg-orange-soft text-orange'
+                  : 'text-ink-muted hover:text-ink hover:bg-[var(--surface-strong)]'
+              }`}
+              title={adminLink.label}
+            >
+              <Shield className="w-5 h-5" />
+            </Link>
+          )}
         </div>
 
         {/* Right section: Notifications + Profile + Connect */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Notification Bell - only show when connected */}
           {isConnected && <NotificationBell />}
           
@@ -112,7 +108,7 @@ export function Navbar() {
               {/* Mobile Profile Icon */}
               <Link
                 to={profileLink.to}
-                className={`md:hidden flex items-center justify-center h-10 w-10 rounded-lg transition-all ${
+                className={`md:hidden flex items-center justify-center h-9 w-9 rounded-lg transition-all ${
                   pathname === profileLink.to
                     ? 'bg-orange-soft text-orange'
                     : 'text-ink-muted hover:text-ink hover:bg-[var(--surface-strong)]'
@@ -126,6 +122,7 @@ export function Navbar() {
           
           <ConnectWallet />
         </div>
+
       </div>
     </nav>
   )
