@@ -211,16 +211,18 @@ export function HomePage() {
         </section>
 
         {/* QUICK ACTIONS */}
-        <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+        <section className="grid grid-cols-1 gap-2.5 sm:grid-cols-4 sm:gap-3">
           {QUICK_ACTIONS.map((a) => {
             const Icon = a.icon
             const inner = (
-              <div className="flex h-full flex-col items-center gap-2 text-center">
+              <div className="flex h-full items-center gap-3 text-left sm:flex-col sm:items-center sm:gap-2 sm:text-center">
                 <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full sm:h-11 sm:w-11 ${a.ring}`}>
                   <Icon className={`h-5 w-5 ${a.tone}`} />
                 </div>
-                <h3 className="text-[13px] font-bold leading-tight text-ink sm:text-sm">{a.title}</h3>
-                <p className="text-[11px] leading-snug text-ink-muted sm:text-xs">{a.sub}</p>
+                <div className="min-w-0 sm:contents">
+                  <h3 className="truncate text-sm font-bold leading-tight text-ink">{a.title}</h3>
+                  <p className="truncate text-[11px] leading-snug text-ink-muted sm:whitespace-normal sm:text-xs">{a.sub}</p>
+                </div>
               </div>
             )
             return a.to ? (
