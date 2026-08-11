@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Backend URL Cache</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0a0a0a;
+            color: #fff;
+        }
+        .box {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #ff8555;
+        }
+        .success {
+            color: #4ade80;
+        }
+        .info {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 HemiChess Backend URL Debug</h1>
+    
+    <div class="box">
+        <h2>Current Settings:</h2>
+        <p><strong>Environment Variable (Expected):</strong> <span class="info">http://localhost:4000</span></p>
+        <p><strong>LocalStorage (Cached):</strong> <span id="cached">Checking...</span></p>
+    </div>
+
+    <div class="box">
+        <h2>Actions:</h2>
+        <button onclick="clearCache()">Clear LocalStorage Cache</button>
+        <button onclick="setCorrect()">Set to http://localhost:4000</button>
+        <button onclick="location.reload()">Refresh</button>
+    </div>
+
+    <div id="result" class="box" style="display:none;">
+        <h3 class="success">✓ Done!</h3>
+        <p>Now go back to your app and try again.</p>
+    </div>
+
+    <script>
+        const KEY = "hemichess.backendUrl";
+        
+        function showCached() {
+            const cached = localStorage.getItem(KEY);
+            document.getElementById('cached').textContent = cached || '(not set)';
+            document.getElementById('cached').className = cached ? 'info' : 'success';
+        }
+
+        function clearCache() {
+            localStorage.removeItem(KEY);
+            document.getElementById('result').style.display = 'block';
+            showCached();
+        }
+
+        function setCorrect() {
+            localStorage.setItem(KEY, 'http://localhost:4000');
+            document.getElementById('result').style.display = 'block';
+            showCached();
+        }
+
+        showCached();
+    </script>
+</body>
+</html>
