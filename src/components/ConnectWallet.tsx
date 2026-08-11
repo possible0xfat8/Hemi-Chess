@@ -128,11 +128,11 @@ export function ConnectWallet() {
         <button
           onClick={handleDisconnect}
           disabled={isDisconnecting}
-          className="flex items-center justify-center gap-2 h-10 px-3 sm:px-4 bg-red-600/80 hover:bg-red-600 disabled:bg-red-800/60 disabled:cursor-not-allowed border border-red-500/50 rounded-lg font-semibold text-sm transition-all"
+          className="flex items-center justify-center gap-2 h-9 w-9 md:h-10 md:w-auto md:px-4 bg-red-600/80 hover:bg-red-600 disabled:bg-red-800/60 disabled:cursor-not-allowed border border-red-500/50 rounded-lg font-semibold text-sm transition-all"
           title="Disconnect"
         >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">
+          <LogOut className="w-4 h-4 shrink-0" />
+          <span className="hidden md:inline">
             {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
           </span>
         </button>
@@ -144,13 +144,16 @@ export function ConnectWallet() {
     <div className="relative">
       <button
         onClick={() => setShowConnectors((open) => !open)}
-        className="flex items-center justify-center gap-2 h-10 px-3 sm:px-5 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 rounded-lg text-sm font-semibold transition-all shadow-md"
+        className="flex items-center justify-center gap-2 h-9 w-9 md:h-10 md:w-auto md:px-5 bg-orange-soft md:bg-slate-800/80 md:hover:bg-slate-700/80 border border-orange/40 md:border-slate-700 text-orange md:text-slate-200 rounded-lg text-sm font-semibold transition-all shadow-md"
+        title="Connect Wallet"
+        aria-label="Connect Wallet"
       >
-        <User className="w-4 h-4" />
-        <span className="hidden sm:inline">
+        <Wallet className="w-4 h-4 shrink-0" />
+        <span className="hidden md:inline">
           {isPending ? 'Connecting…' : 'Connect Wallet'}
         </span>
       </button>
+
       {showConnectors && (
         <div className="surface-modal absolute right-0 top-full z-[110] mt-2 w-56 p-2">
           {uniqueConnectors.length === 0 && (
