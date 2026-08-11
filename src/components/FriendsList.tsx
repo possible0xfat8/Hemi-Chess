@@ -178,9 +178,9 @@ export function FriendsList() {
     if (searchQuery.length >= 2) {
       const timer = setTimeout(() => searchPlayers(searchQuery), 300);
       return () => clearTimeout(timer);
-    } else {
-      setSearchResults([]);
     }
+    setSearchResults([]);
+    return undefined;
   }, [searchQuery]);
 
   if (!isConnected || !address) {
