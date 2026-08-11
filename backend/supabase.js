@@ -396,6 +396,7 @@ async function countPlayers() {
 }
 
 // Get leaderboard (ranked by ELO)
+// Players WITH games are prioritized over players WITHOUT games
 async function getLeaderboard(limit = 100, minGames = 0) {
   if (!isEnabled) return [];
   
@@ -407,12 +408,37 @@ async function getLeaderboard(limit = 100, minGames = 0) {
       .gte('total_games', minGames)
       .order('elo_rating', { ascending: false })
       .order('wins', { ascending: false }) // Tiebreaker
-      .limit(limit);
+      .limit(limit * 2); // Fetch more to ensure we have enough after sorting
     
     if (error) throw error;
     
-    // Add rank and win_rate
-    return (data || []).map((player, index) => {
+    // Sort: Players with games > 0 first, then by ELO, then by wins
+    const sorted = (data || []).sort((a, b) => {
+      // Primary sort: Has played games (total_games > 0)
+      const aHasGames = (a.total_games || 0) > 0 ? 1 : 0;
+      const bHasGames = (b.total_games || 0) > 0 ? 1 : 0;
+      
+      if (aHasGames !== bHasGames) {
+        return bHasGames - aHasGames; // Players with games first
+      }
+      
+      // Secondary sort: ELO rating (descending)
+      const aElo = a.elo_rating || DEFAULT_ELO;
+      const bElo = b.elo_rating || DEFAULT_ELO;
+      
+      if (aElo !== bElo) {
+        return bElo - aElo; // Higher ELO first
+      }
+      
+      // Tertiary sort: Wins (descending)
+      const aWins = a.wins || 0;
+      const bWins = b.wins || 0;
+      
+      return bWins - aWins; // More wins first
+    });
+    
+    // Limit after sorting and add rank
+    return sorted.slice(0, limit).map((player, index) => {
       const normalized = normalizePlayer(player);
       return {
         rank: index + 1,
