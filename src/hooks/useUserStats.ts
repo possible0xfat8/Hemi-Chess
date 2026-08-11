@@ -12,6 +12,7 @@ export interface UserStats {
   draws: number
   total_games: number
   win_rate: number
+  username?: string | null
 }
 
 
