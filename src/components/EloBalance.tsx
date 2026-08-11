@@ -1,5 +1,7 @@
 import { useUserStats, DEFAULT_ELO } from '@/hooks/useUserStats'
-import { Trophy, Loader2 } from 'lucide-react'
+import { Trophy, Loader2, HelpCircle } from 'lucide-react'
+import { useState } from 'react'
+import { HeloExplanationModal } from './HeloExplanationModal'
 
 /**
  * Rating badge - Shows ELO from database (source of truth)
@@ -7,6 +9,7 @@ import { Trophy, Loader2 } from 'lucide-react'
  */
 export function EloBalance() {
   const { data: userStats, isLoading: isLoadingStats } = useUserStats()
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   if (!userStats && !isLoadingStats) {
     return null
@@ -15,17 +18,34 @@ export function EloBalance() {
   const eloRating = userStats?.elo_rating ?? DEFAULT_ELO
 
   return (
-    <div className="flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2">
-      <Trophy className="w-4 h-4 text-yellow-500" />
+    <>
+      <div className="flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2">
+        <Trophy className="w-4 h-4 text-yellow-500" />
 
-      {isLoadingStats ? (
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
-          <span className="text-xs text-slate-400">Loading...</span>
-        </div>
-      ) : (
-        <span className="text-xs font-semibold text-yellow-500">{eloRating} ELO</span>
-      )}
-    </div>
+        {isLoadingStats ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+            <span className="text-xs text-slate-400">Loading...</span>
+          </div>
+        ) : (
+          <>
+            <span className="text-xs font-semibold text-yellow-500">{eloRating} ELO</span>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="ml-1 p-0.5 rounded-full hover:bg-slate-800 transition-colors group"
+              title="What is $HELO?"
+              aria-label="Learn about HELO rating system"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-slate-500 group-hover:text-yellow-500 transition-colors" />
+            </button>
+          </>
+        )}
+      </div>
+
+      <HeloExplanationModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   )
 }

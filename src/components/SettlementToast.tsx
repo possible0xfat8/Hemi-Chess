@@ -23,7 +23,7 @@ export function SettlementToast() {
       setSettlements(prev => [...prev, {
         id,
         status: 'pending',
-        message: 'Processing on-chain settlement...',
+        message: 'Updating your ranking...',
         timestamp: Date.now(),
       }])
     }
@@ -47,7 +47,7 @@ export function SettlementToast() {
               ? {
                   ...s,
                   status: 'complete',
-                  message: `Settlement complete! ${change >= 0 ? '+' : ''}${change} $HELO (${oldElo} → ${newElo})`,
+                  message: `Your new ELO is secured on the Hemi blockchain in the background. (${change >= 0 ? '+' : ''}${change} — ${oldElo} → ${newElo})`,
                   change,
                 }
               : s
@@ -75,7 +75,7 @@ export function SettlementToast() {
               ? {
                   ...s,
                   status: 'error',
-                  message: `Settlement failed: ${error}`,
+                  message: `Unable to update blockchain record: ${error}`,
                 }
               : s
           )
@@ -143,9 +143,9 @@ export function SettlementToast() {
             {/* Message */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold leading-tight">
-                {settlement.status === 'pending' && 'Settlement processing'}
-                {settlement.status === 'complete' && 'Settlement complete'}
-                {settlement.status === 'error' && 'Settlement failed'}
+                {settlement.status === 'pending' && 'Updating your rank...'}
+                {settlement.status === 'complete' && 'Rank Updated! 🏆'}
+                {settlement.status === 'error' && 'Update failed'}
               </p>
               <p className="text-xs mt-1 opacity-90">
                 {settlement.message}
