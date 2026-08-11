@@ -10,6 +10,7 @@ import {
 import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { WelcomeModal } from "../components/WelcomeModal";
 
 function NotFoundComponent() {
   return (
@@ -125,6 +126,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Welcome Modal - Shows once per browser session */}
+      <WelcomeModal />
+      
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
