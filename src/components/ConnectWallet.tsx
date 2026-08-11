@@ -1,7 +1,7 @@
 import { getBackendUrl } from '@/lib/config'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { useEffect, useState } from 'react'
-import { User, LogOut } from 'lucide-react'
+import { LogOut, Wallet } from 'lucide-react'
 
 export function ConnectWallet() {
   const { address, isConnected, connector } = useAccount()
