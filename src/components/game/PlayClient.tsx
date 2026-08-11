@@ -1,5 +1,6 @@
 import { getSocket } from '@/lib/socket';
 import { SettlementToast } from '@/components/SettlementToast';
+import { LearnChessModal } from '@/components/LearnChessModal';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Socket } from 'socket.io-client';
 import { Chessboard } from 'react-chessboard';
@@ -16,7 +17,7 @@ import {
 } from '@/components/game/Lobby';
 import { useUserStats, useMatchHistory, DEFAULT_ELO } from '@/hooks/useUserStats';
 import { usePlayerStats } from '@/hooks/useHemiChessElo';
-import { AlertTriangle, Crown, Scale, Flag, Handshake, List } from 'lucide-react';
+import { AlertTriangle, Crown, Scale, Flag, Handshake, List, BookOpen } from 'lucide-react';
 
 
 type GameState = 'menu' | 'finding' | 'playing' | 'finished';
@@ -71,6 +72,9 @@ export function PlayClient() {
   // Draw/Resign
   const [drawOffered, setDrawOffered] = useState<boolean>(false);
   const [opponentOfferedDraw, setOpponentOfferedDraw] = useState<boolean>(false);
+  
+  // Learn Chess Modal
+  const [showLearnModal, setShowLearnModal] = useState<boolean>(false);
   
   // Last move highlight
   const [lastMove, setLastMove] = useState<{from: string, to: string} | null>(null);
@@ -796,6 +800,15 @@ export function PlayClient() {
                         <p className="mt-3 text-center text-xs text-ink-faint">
                           {timeControl?.label} {timeControl?.sub} • {userStats.elo} ELO rated
                         </p>
+                        
+                        {/* Learn Chess Button */}
+                        <button
+                          onClick={() => setShowLearnModal(true)}
+                          className="mt-4 w-full rounded-lg border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-sm font-semibold text-ink-muted hover:text-ink hover:bg-[var(--surface-hover)] transition-all flex items-center justify-center gap-2"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          Learn Chess Basics
+                        </button>
                       </>
                     )}
 
@@ -1218,6 +1231,12 @@ export function PlayClient() {
           );
         })()}
       </main>
+
+      {/* Learn Chess Modal */}
+      <LearnChessModal 
+        isOpen={showLearnModal} 
+        onClose={() => setShowLearnModal(false)} 
+      />
     </div>
   );
 }
