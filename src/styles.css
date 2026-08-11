@@ -1,0 +1,279 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --font-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  
+  /* Semantic layer names */
+  --color-canvas: var(--bg-base);
+  --color-elevated: var(--bg-elevated);
+  --color-surface: var(--surface-glass);
+  --color-surface-strong: var(--surface-strong);
+  --color-line: var(--surface-border);
+  --color-line-strong: var(--surface-border-strong);
+  
+  /* Hemi brand colors */
+  --color-orange: var(--accent-orange);
+  --color-orange-soft: var(--accent-orange-soft);
+  --color-teal: var(--accent-teal);
+  --color-teal-soft: var(--accent-teal-soft);
+  --color-blue: var(--accent-blue);
+  --color-blue-soft: var(--accent-blue-soft);
+  
+  /* Legacy colors for backward compatibility */
+  --color-emerald-accent: var(--accent-teal);     /* Map emerald to teal */
+  --color-emerald-soft: var(--accent-teal-soft);
+  --color-amber-accent: var(--accent-amber);
+  --color-danger-accent: var(--accent-danger);
+  --color-info-accent: var(--accent-blue);
+  
+  /* Text */
+  --color-ink: var(--text-primary);
+  --color-ink-muted: var(--text-muted);
+  --color-ink-faint: var(--text-faint);
+  
+  /* Chess board */
+  --color-board-light: var(--board-light);
+  --color-board-dark: var(--board-dark);
+
+  /* shadcn/ui compatibility */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Hemi-inspired brand colors */
+  /* Base backgrounds - darker, more premium */
+  --bg-base: oklch(0.12 0.01 260);              /* Deep dark blue-black */
+  --bg-elevated: oklch(0.16 0.012 260);         /* Slightly elevated dark */
+  
+  /* Surface system - teal/blue tints */
+  --surface-glass: oklch(0.18 0.02 220 / 0.5);  /* Glass with blue tint */
+  --surface-strong: oklch(0.15 0.015 220 / 0.85); /* Strong surface */
+  --surface-border: oklch(0.28 0.03 220 / 0.6); /* Teal-blue border */
+  --surface-border-strong: oklch(0.38 0.04 220 / 0.8); /* Strong border */
+  
+  /* Hemi brand accents */
+  --accent-orange: oklch(0.70 0.18 45);         /* Hemi activation orange */
+  --accent-orange-soft: oklch(0.70 0.18 45 / 0.16); /* Soft orange bg */
+  --accent-teal: oklch(0.65 0.12 200);          /* Hemi security teal */
+  --accent-teal-soft: oklch(0.65 0.12 200 / 0.16); /* Soft teal bg */
+  --accent-blue: oklch(0.58 0.15 245);          /* Hemi innovation blue */
+  --accent-blue-soft: oklch(0.58 0.15 245 / 0.16); /* Soft blue bg */
+  
+  /* Legacy accents for specific features */
+  --accent-amber: oklch(0.83 0.15 84);          /* Warning/draw offers */
+  --accent-danger: oklch(0.68 0.19 22);         /* Error/resign */
+  
+  /* Text hierarchy - adjusted for darker bg */
+  --text-primary: oklch(0.98 0.005 260);        /* Near white */
+  --text-muted: oklch(0.70 0.02 220);           /* Muted with teal hint */
+  --text-faint: oklch(0.50 0.03 220);           /* Faint with teal hint */
+  
+  /* Chess board — tournament green (chess.com-like) */
+  --board-light: oklch(0.925 0.032 108);        /* #EBECD0 */
+  --board-dark: oklch(0.605 0.093 137);         /* #739552 */
+  
+  /* Elevations - deeper shadows for premium feel */
+  --elevation-1: 0 1px 3px oklch(0 0 0 / 0.5);
+  --elevation-2: 0 12px 32px -14px oklch(0 0 0 / 0.75);
+  --elevation-3: 0 28px 64px -22px oklch(0 0 0 / 0.85);
+
+  --background: oklch(0.05 0 0);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.1 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.70 0.18 45);                /* Hemi orange as primary */
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.65 0.12 200);                /* Hemi teal as accent */
+  --accent-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.18 0 0);
+  --input: oklch(0.18 0 0);
+  --ring: oklch(0.70 0.18 45);                   /* Hemi orange for focus */
+  --chart-1: oklch(0.70 0.18 45);                /* Orange */
+  --chart-2: oklch(0.65 0.12 200);               /* Teal */
+  --chart-3: oklch(0.58 0.15 245);               /* Blue */
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.05 0 0);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.70 0.18 45);        /* Hemi orange */
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(0.18 0 0);
+  --sidebar-ring: oklch(0.70 0.18 45);           /* Hemi orange */
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    letter-spacing: 0;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  
+  button, .font-bold {
+    font-weight: 600;
+  }
+  
+  .font-semibold {
+    font-weight: 600;
+  }
+  
+  .font-medium {
+    font-weight: 500;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+/* HemiChess board + surface utilities */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Hemi brand glows */
+.glow-orange { box-shadow: 0 0 25px rgba(255, 140, 50, 0.4); }
+.glow-teal { box-shadow: 0 0 25px rgba(100, 200, 200, 0.35); }
+.glow-blue { box-shadow: 0 0 25px rgba(100, 150, 255, 0.35); }
+.glow-amber { box-shadow: 0 0 25px rgba(251, 191, 36, 0.3); }
+
+/* Legacy compatibility */
+.glow-emerald { box-shadow: 0 0 25px rgba(100, 200, 200, 0.35); }
+
+/* ── Unified surface pattern ─────────────────────────────── */
+@utility surface {
+  background-color: var(--surface-glass);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--elevation-2);
+  backdrop-filter: blur(16px);
+}
+
+@utility surface-inset {
+  background-color: var(--surface-strong);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-xl);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.03);
+}
+
+@utility surface-active {
+  border-color: var(--accent-orange);
+  box-shadow: var(--elevation-2), 0 0 0 1px var(--accent-orange-soft), 0 0 28px -6px var(--accent-orange-soft);
+}
+
+@utility surface-modal {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--surface-border-strong);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--elevation-3);
+}
+
+/* Animation delay utilities for celebration effects */
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-450 {
+  animation-delay: 450ms;
+}
