@@ -5,6 +5,7 @@ const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'hemi-profile-storage';
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL; // Add this to .env after enabling public access
 
 // Check if R2 is configured
 const isR2Enabled = !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY);
@@ -51,10 +52,17 @@ async function uploadAvatar(walletAddress, imageBuffer, contentType) {
 
     await r2Client.send(command);
 
-    // R2 public URL (you need to set up a custom domain or use R2 public access)
-    const publicUrl = `https://pub-${R2_ACCOUNT_ID}.r2.dev/${key}`;
+    // Use R2_PUBLIC_URL from env, or construct default URL
+    const baseUrl = R2_PUBLIC_URL || `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    const publicUrl = `${baseUrl}/${key}`;
     
-    console.log(`[R2] Avatar uploaded for ${walletAddress.slice(0, 8)}`);
+    console.log(`[R2] Avatar uploaded for ${walletAddress.slice(0, 8)}: ${publicUrl}`);
+    
+    if (!R2_PUBLIC_URL) {
+      console.warn('[R2] ⚠ R2_PUBLIC_URL not configured - avatars may not be publicly accessible!');
+      console.warn('[R2] ⚠ Enable public access in Cloudflare and add R2_PUBLIC_URL to .env');
+    }
+    
     return { success: true, url: publicUrl };
   } catch (error) {
     console.error('[R2] Upload error:', error);
@@ -122,7 +130,8 @@ function getAvatarUrl(walletAddress) {
   if (!isR2Enabled || !walletAddress) return null;
   
   const key = `avatars/${walletAddress.toLowerCase()}.jpg`;
-  return `https://pub-${R2_ACCOUNT_ID}.r2.dev/${key}`;
+  const baseUrl = R2_PUBLIC_URL || `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+  return `${baseUrl}/${key}`;
 }
 
 module.exports = {
