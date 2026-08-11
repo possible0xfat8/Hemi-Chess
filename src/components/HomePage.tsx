@@ -1,9 +1,23 @@
 import { Link } from '@tanstack/react-router'
 import { useAccount } from 'wagmi'
-import { Zap, Users, Trophy, BarChart3, Gamepad2, Home, User } from 'lucide-react'
+import {
+  Zap,
+  Users,
+  Trophy,
+  BarChart3,
+  Gamepad2,
+  Home,
+  User,
+  Plus,
+  ChevronRight,
+  TrendingUp,
+  Star,
+  Crown,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getBackendUrl } from '@/lib/config'
 import { Navbar } from '@/components/Navbar'
+import heroChess from '@/assets/hero-chess.jpg'
 
 interface UserStats {
   elo_rating: number
@@ -22,6 +36,53 @@ interface ActiveGame {
   time_remaining: number
 }
 
+const QUICK_ACTIONS = [
+  {
+    to: '/play',
+    icon: Zap,
+    title: 'Quick Match',
+    sub: 'Find an opponent instantly',
+    tone: 'text-orange',
+    ring: 'bg-orange-soft',
+    hover: 'hover:border-orange/40',
+  },
+  {
+    to: '/friends',
+    icon: Users,
+    title: 'Friends',
+    sub: 'Challenge your friends',
+    tone: 'text-orange',
+    ring: 'bg-orange-soft',
+    hover: 'hover:border-orange/40',
+  },
+  {
+    to: null,
+    icon: Trophy,
+    title: 'Tournaments',
+    sub: 'Compete and win rewards',
+    tone: 'text-orange',
+    ring: 'bg-orange-soft',
+    hover: '',
+  },
+  {
+    to: '/leaderboard',
+    icon: BarChart3,
+    title: 'Leaderboards',
+    sub: "See who's on top",
+    tone: 'text-orange',
+    ring: 'bg-orange-soft',
+    hover: 'hover:border-orange/40',
+  },
+] as const
+
+const BOTTOM_NAV = [
+  { to: '/', icon: Home, label: 'Home' },
+  { to: '/play', icon: Gamepad2, label: 'Play' },
+  { to: '/leaderboard', icon: Trophy, label: 'Tournaments' },
+  { to: '/friends', icon: Users, label: 'Friends' },
+  { to: '/profile', icon: User, label: 'Profile' },
+] as const
+
 export function HomePage() {
   const { address, isConnected } = useAccount()
   const [stats, setStats] = useState<UserStats | null>(null)
@@ -31,339 +92,267 @@ export function HomePage() {
       opponent_name: 'DarkKnight',
       opponent_elo: 1523,
       your_turn: true,
-      time_remaining: 900
+      time_remaining: 900,
     },
     {
       game_id: '2',
       opponent_name: 'IronBishop',
       opponent_elo: 1498,
       your_turn: false,
-      time_remaining: 720
-    }
+      time_remaining: 720,
+    },
   ])
 
   useEffect(() => {
-    if (isConnected && address) {
-      fetchUserStats()
+    if (!isConnected || !address) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const response = await fetch(`${getBackendUrl()}/api/users/${address}/stats`)
+        if (!response.ok) return
+        const data = (await response.json()) as UserStats
+        if (!cancelled) setStats(data)
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
     }
   }, [isConnected, address])
-
-  const fetchUserStats = async () => {
-    if (!address) return
-    
-    try {
-      const response = await fetch(`${getBackendUrl()}/api/users/${address}/stats`)
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error)
-    }
-  }
 
   const handleQuickMatch = () => {
     window.location.href = '/play'
   }
 
   const handleCreateRoom = () => {
-    console.log('Create room')
+    window.location.href = '/play'
   }
 
+  const statItems = [
+    {
+      icon: Crown,
+      tone: 'text-ink',
+      value: stats ? String(stats.total_games) : '—',
+      label: 'Games Played',
+    },
+    {
+      icon: TrendingUp,
+      tone: 'text-teal',
+      value: stats ? `${Math.round(stats.win_rate)}%` : '—',
+      label: 'Win Rate',
+    },
+    {
+      icon: Trophy,
+      tone: 'text-blue',
+      value: stats ? String(stats.elo_rating) : '—',
+      label: 'Rating',
+    },
+    {
+      icon: Star,
+      tone: 'text-orange',
+      value: stats ? String(Math.max(stats.wins, 0)) : '—',
+      label: 'Win Streak',
+    },
+  ]
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-16 md:pb-6">
-      {/* Use existing Navbar component */}
+    <div className="min-h-screen bg-canvas pb-24 md:pb-10">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4 space-y-4 sm:space-y-5">
-        
-        {/* HERO SECTION */}
-        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl" style={{ minHeight: '220px' }}>
-          <div className="absolute inset-0">
-            <img 
-              src="/spotlight image.png" 
-              alt="Chess" 
-              className="w-full h-full object-cover object-right"
+      <main className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-4 sm:px-5 sm:space-y-5">
+        {/* HERO */}
+        <section className="surface relative overflow-hidden p-0">
+          <div className="pointer-events-none absolute inset-0">
+            <img
+              src={heroChess}
+              width={1536}
+              height={768}
+              alt=""
+              aria-hidden="true"
+              className="h-full w-full object-cover object-right"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[color-mix(in_oklab,var(--bg-base)_62%,transparent)] to-transparent" />
           </div>
-          
-          <div className="relative z-10 h-full flex flex-col justify-end p-4 sm:p-6" style={{ minHeight: '220px' }}>
-            <div className="space-y-3 max-w-xs sm:max-w-md">
-              <div className="space-y-0.5">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-                  Play. Strategize.
-                </h1>
-                <h1 className="text-2xl sm:text-3xl font-bold text-orange leading-tight">
-                  Dominate.
-                </h1>
-              </div>
-              
-              <p className="text-xs sm:text-sm text-gray-300">
+
+          <div className="relative z-10 flex min-h-[240px] flex-col justify-center gap-4 p-5 sm:min-h-[280px] sm:p-8">
+            <div className="max-w-[19rem] sm:max-w-md">
+              <h1 className="text-[1.75rem] font-extrabold leading-[1.1] tracking-tight text-ink sm:text-4xl">
+                Play. Strategize.
+                <br />
+                <span className="text-orange">Dominate.</span>
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted sm:text-base">
                 Challenge players worldwide and climb the leaderboard.
               </p>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  onClick={handleQuickMatch}
-                  disabled={!isConnected}
-                  className="flex items-center justify-center gap-2 h-10 px-4 bg-orange hover:bg-orange/90 disabled:bg-gray-700 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all"
-                >
-                  <Gamepad2 className="w-4 h-4" />
-                  Play Now
-                </button>
-                
-                <button
-                  onClick={handleCreateRoom}
-                  disabled={!isConnected}
-                  className="flex items-center justify-center gap-2 h-10 px-4 bg-white/10 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 text-white text-sm font-semibold rounded-lg transition-all backdrop-blur-sm"
-                >
-                  <Users className="w-4 h-4" />
-                  Create Room
-                </button>
-              </div>
+            <div className="flex flex-wrap gap-2.5">
+              <button
+                onClick={handleQuickMatch}
+                disabled={!isConnected}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange px-5 text-sm font-bold text-[var(--bg-base)] transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                <Gamepad2 className="h-4 w-4" />
+                Play Now
+              </button>
+
+              <button
+                onClick={handleCreateRoom}
+                disabled={!isConnected}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line-strong bg-[var(--surface-strong)] px-5 text-sm font-bold text-ink backdrop-blur-sm transition-colors hover:border-orange/40 disabled:opacity-40"
+              >
+                <Plus className="h-4 w-4" />
+                Create Room
+              </button>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* QUICK ACTION CARDS */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-          <Link
-            to="/play"
-            className="bg-[#1a1a1a] border border-white/5 hover:border-orange/30 rounded-xl p-4 transition-all"
-          >
-            <div className="flex flex-col items-center text-center space-y-2.5">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-orange/30 to-orange/10 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-orange" />
+        {/* QUICK ACTIONS */}
+        <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+          {QUICK_ACTIONS.map((a) => {
+            const Icon = a.icon
+            const inner = (
+              <div className="flex h-full flex-col items-center gap-2 text-center">
+                <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full sm:h-11 sm:w-11 ${a.ring}`}>
+                  <Icon className={`h-5 w-5 ${a.tone}`} />
+                </div>
+                <h3 className="text-[13px] font-bold leading-tight text-ink sm:text-sm">{a.title}</h3>
+                <p className="text-[11px] leading-snug text-ink-muted sm:text-xs">{a.sub}</p>
               </div>
-              <div className="space-y-0.5">
-                <h3 className="text-sm font-semibold text-white">Quick Match</h3>
-                <p className="text-xs text-gray-400">Find opponent instantly</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/friends"
-            className="bg-[#1a1a1a] border border-white/5 hover:border-cyan-500/30 rounded-xl p-4 transition-all"
-          >
-            <div className="flex flex-col items-center text-center space-y-2.5">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-cyan-500/30 to-cyan-500/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-cyan-400" />
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="text-sm font-semibold text-white">Friends</h3>
-                <p className="text-xs text-gray-400">Challenge friends</p>
-              </div>
-            </div>
-          </Link>
-
-          <button
-            disabled
-            className="bg-[#1a1a1a] border border-white/5 rounded-xl p-4 opacity-50 cursor-not-allowed"
-          >
-            <div className="flex flex-col items-center text-center space-y-2.5">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-amber-500/30 to-amber-500/10 flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-amber-400" />
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="text-sm font-semibold text-white">Tournaments</h3>
-                <p className="text-xs text-gray-400">Compete for rewards</p>
-              </div>
-            </div>
-          </button>
-
-          <Link
-            to="/leaderboard"
-            className="bg-[#1a1a1a] border border-white/5 hover:border-purple-500/30 rounded-xl p-4 transition-all"
-          >
-            <div className="flex flex-col items-center text-center space-y-2.5">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/30 to-purple-500/10 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-purple-400" />
-              </div>
-              <div className="space-y-0.5">
-                <h3 className="text-sm font-semibold text-white">Leaderboards</h3>
-                <p className="text-xs text-gray-400">See who's on top</p>
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* YOUR STATS SECTION */}
-        {isConnected && stats && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white">Your Stats</h2>
+            )
+            return a.to ? (
               <Link
-                to="/profile"
-                className="text-xs font-semibold text-orange hover:text-orange/80 transition-colors"
+                key={a.title}
+                to={a.to}
+                className={`surface-inset p-3.5 transition-colors sm:p-4 ${a.hover}`}
               >
-                View All →
+                {inner}
+              </Link>
+            ) : (
+              <div
+                key={a.title}
+                aria-disabled="true"
+                className="surface-inset cursor-not-allowed p-3.5 opacity-50 sm:p-4"
+              >
+                {inner}
+              </div>
+            )
+          })}
+        </section>
+
+        {/* STATS */}
+        <section className="surface p-4 sm:p-5">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+            <h2 className="truncate text-base font-bold text-ink sm:text-lg">Your Stats</h2>
+            <Link
+              to="/profile"
+              className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-orange transition-opacity hover:opacity-80 sm:text-sm"
+            >
+              View All
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="mt-4 grid grid-cols-4 divide-x divide-[var(--surface-border)] border-t border-line pt-4">
+            {statItems.map((s) => {
+              const Icon = s.icon
+              return (
+                <div key={s.label} className="flex flex-col items-center gap-1 px-1 text-center">
+                  <Icon className={`h-5 w-5 ${s.tone}`} />
+                  <span className="text-xl font-extrabold text-ink sm:text-2xl">{s.value}</span>
+                  <span className="text-[10px] leading-tight text-ink-muted sm:text-xs">
+                    {s.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+
+          {!isConnected && (
+            <p className="mt-4 text-center text-xs text-ink-faint">
+              Connect your wallet to track your rating and match history.
+            </p>
+          )}
+        </section>
+
+        {/* ACTIVE GAMES */}
+        {isConnected && activeGames.length > 0 && (
+          <section className="surface p-4 sm:p-5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+              <h2 className="truncate text-base font-bold text-ink sm:text-lg">Active Games</h2>
+              <Link
+                to="/play"
+                className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-orange transition-opacity hover:opacity-80 sm:text-sm"
+              >
+                See All
+                <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="bg-[#1a1a1a] border border-white/5 rounded-xl p-4">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-white">
-                    {stats.total_games}
-                  </div>
-                  <div className="text-xs text-gray-400 flex items-center justify-center gap-1">
-                    <span className="text-sm">♟</span>
-                    Games Played
-                  </div>
-                </div>
-
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-cyan-400">
-                    {Math.round(stats.win_rate)}%
-                  </div>
-                  <div className="text-xs text-gray-400 flex items-center justify-center gap-1">
-                    <span className="text-cyan-400 text-sm">↗</span>
-                    Win Rate
-                  </div>
-                </div>
-
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-blue-400">
-                    {stats.elo_rating}
-                  </div>
-                  <div className="text-xs text-gray-400 flex items-center justify-center gap-1">
-                    <Trophy className="w-3 h-3 text-blue-400" />
-                    Rating
-                  </div>
-                </div>
-
-                <div className="text-center space-y-1">
-                  <div className="text-2xl font-bold text-purple-400">
-                    {Math.max(stats.wins, 0)}
-                  </div>
-                  <div className="text-xs text-gray-400 flex items-center justify-center gap-1">
-                    <span className="text-purple-400 text-sm">★</span>
-                    Win Streak
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!isConnected && (
-          <div className="bg-[#1a1a1a] border border-white/5 rounded-xl p-5 text-center space-y-2">
-            <h3 className="text-sm font-semibold text-white">Connect Your Wallet</h3>
-            <p className="text-xs text-gray-400">
-              Connect your wallet to start playing and track your stats
-            </p>
-          </div>
-        )}
-
-        {/* ACTIVE GAMES SECTION */}
-        {isConnected && activeGames.length > 0 && (
-          <div className="space-y-3 pb-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white">Active Games</h2>
-              <button className="text-xs font-semibold text-orange hover:text-orange/80 transition-colors">
-                See All →
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
+            <div className="mt-4 space-y-2.5 border-t border-line pt-4">
               {activeGames.map((game) => (
                 <Link
                   key={game.game_id}
                   to="/play"
-                  className="block bg-[#1a1a1a] border border-white/5 hover:border-orange/30 rounded-xl p-4 transition-all active:scale-[0.98]"
+                  className="surface-inset grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3 transition-colors hover:border-orange/40 active:scale-[0.99] sm:p-4"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <div className="h-11 w-11 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-base font-semibold border-2 border-white/10">
-                          {game.opponent_name.charAt(0)}
-                        </div>
-                        <div className="absolute bottom-0 right-0 h-3 w-3 bg-cyan-400 rounded-full border-2 border-[#1a1a1a]" />
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="relative shrink-0">
+                      <div className="grid h-11 w-11 place-items-center rounded-full border border-line-strong bg-[var(--bg-elevated)] text-base font-bold text-ink">
+                        {game.opponent_name.charAt(0)}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-semibold text-white text-sm">
-                            {game.opponent_name}
-                          </span>
-                          <span className="text-xs text-orange font-semibold">
-                            {game.opponent_elo}
-                          </span>
-                        </div>
-                        {game.your_turn ? (
-                          <div className="text-xs text-cyan-400 font-semibold">Your Turn</div>
-                        ) : (
-                          <div className="text-xs text-gray-400">Opponent's Turn</div>
-                        )}
-                      </div>
+                      {game.your_turn && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--bg-elevated)] bg-teal" />
+                      )}
                     </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-ink">{game.opponent_name}</p>
+                      <p className="text-xs font-semibold text-orange">{game.opponent_elo}</p>
+                    </div>
+                  </div>
 
-                    <div className="text-right">
-                      <div className="text-sm font-mono text-white">
-                        {Math.floor(game.time_remaining / 60)}:{(game.time_remaining % 60).toString().padStart(2, '0')}
-                      </div>
-                    </div>
+                  <div className="shrink-0 text-right">
+                    <p
+                      className={`text-xs font-bold ${game.your_turn ? 'text-teal' : 'text-ink-muted'}`}
+                    >
+                      {game.your_turn ? 'Your Turn' : "Opponent's Turn"}
+                    </p>
+                    <p className="font-mono text-sm tabular-nums text-ink">
+                      {Math.floor(game.time_remaining / 60)}:
+                      {(game.time_remaining % 60).toString().padStart(2, '0')}
+                    </p>
                   </div>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
-      </div>
+      </main>
 
-      {/* PREMIUM BOTTOM NAVIGATION */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#141414]/95 backdrop-blur-xl border-t border-white/5 md:hidden">
-        <div className="flex items-center justify-around h-16 px-2">
-          <Link
-            to="/"
-            className="flex flex-col items-center justify-center gap-1 min-w-0 flex-1"
-          >
-            <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-orange/20">
-              <Home className="w-4.5 h-4.5 text-orange" />
-            </div>
-            <span className="text-[10px] font-semibold text-orange">Home</span>
-          </Link>
-          
-          <Link
-            to="/play"
-            className="flex flex-col items-center justify-center gap-1 min-w-0 flex-1"
-          >
-            <div className="flex items-center justify-center h-9 w-9">
-              <Gamepad2 className="w-4.5 h-4.5 text-gray-500" />
-            </div>
-            <span className="text-[10px] font-medium text-gray-500">Play</span>
-          </Link>
-          
-          <Link
-            to="/leaderboard"
-            className="flex flex-col items-center justify-center gap-1 min-w-0 flex-1"
-          >
-            <div className="flex items-center justify-center h-9 w-9">
-              <Trophy className="w-4.5 h-4.5 text-gray-500" />
-            </div>
-            <span className="text-[10px] font-medium text-gray-500">Tournaments</span>
-          </Link>
-          
-          <Link
-            to="/friends"
-            className="flex flex-col items-center justify-center gap-1 min-w-0 flex-1"
-          >
-            <div className="flex items-center justify-center h-9 w-9">
-              <Users className="w-4.5 h-4.5 text-gray-500" />
-            </div>
-            <span className="text-[10px] font-medium text-gray-500">Friends</span>
-          </Link>
-          
-          <Link
-            to="/profile"
-            className="flex flex-col items-center justify-center gap-1 min-w-0 flex-1"
-          >
-            <div className="flex items-center justify-center h-9 w-9">
-              <User className="w-4.5 h-4.5 text-gray-500" />
-            </div>
-            <span className="text-[10px] font-medium text-gray-500">Profile</span>
-          </Link>
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-[color-mix(in_oklab,var(--bg-elevated)_94%,transparent)] backdrop-blur-xl md:hidden">
+        <div className="flex h-16 items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)]">
+          {BOTTOM_NAV.map((item) => {
+            const Icon = item.icon
+            const active = item.to === '/'
+            return (
+              <Link
+                key={item.label}
+                to={item.to}
+                className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1"
+              >
+                <Icon className={`h-5 w-5 ${active ? 'text-orange' : 'text-ink-faint'}`} />
+                <span
+                  className={`truncate text-[10px] font-semibold ${active ? 'text-orange' : 'text-ink-faint'}`}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            )
+          })}
         </div>
       </nav>
     </div>
