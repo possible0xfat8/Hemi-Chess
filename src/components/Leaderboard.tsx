@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getBackendUrl } from '@/lib/config';
 import { Trophy, TrendingUp, Medal } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+import { Avatar } from '@/components/Avatar';
 
 interface LeaderboardEntry {
   rank: number;
@@ -142,13 +143,12 @@ export function Leaderboard() {
                 </td>
                 <td className="px-4 lg:px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--surface-strong)] to-[var(--surface-strong)] ring-1 ring-line text-orange flex items-center justify-center text-canvas font-bold shrink-0 overflow-hidden">
-                      {entry.avatar_url ? (
-                        <img src={entry.avatar_url} alt={entry.username} className="w-full h-full object-cover" />
-                      ) : (
-                        entry.username.charAt(0).toUpperCase()
-                      )}
-                    </div>
+                    <Avatar
+                      src={entry.avatar_url}
+                      alt={entry.username}
+                      size="md"
+                      fallbackText={entry.username}
+                    />
                     <div className="min-w-0">
                       <div className="font-semibold text-ink truncate">{entry.username}</div>
                       <div className="text-xs text-ink-faint font-mono truncate">
@@ -203,13 +203,12 @@ export function Leaderboard() {
             {/* Rank and Player Info */}
             <div className="flex items-center gap-2.5 mb-3">
               <div className="shrink-0">{getRankBadge(entry.rank)}</div>
-              <div className="w-9 h-9 shrink-0 rounded-full bg-[var(--surface-strong)] ring-1 ring-line text-orange flex items-center justify-center font-bold overflow-hidden">
-                {entry.avatar_url ? (
-                  <img src={entry.avatar_url} alt={entry.username} className="w-full h-full object-cover" />
-                ) : (
-                  entry.username.charAt(0).toUpperCase()
-                )}
-              </div>
+              <Avatar
+                src={entry.avatar_url}
+                alt={entry.username}
+                size="sm"
+                fallbackText={entry.username}
+              />
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-ink truncate leading-tight">{entry.username}</div>
                 <div className="text-[11px] text-ink-faint font-mono truncate">

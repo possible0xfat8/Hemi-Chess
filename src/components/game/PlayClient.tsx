@@ -50,7 +50,9 @@ export function PlayClient() {
   const [myTurn, setMyTurn] = useState<boolean>(false);
   const [opponentName, setOpponentName] = useState<string>('Opponent');
   const [opponentElo, setOpponentElo] = useState<number>(200);
+  const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
   const [myGameElo, setMyGameElo] = useState<number>(200);
+  const [myAvatar, setMyAvatar] = useState<string | null>(null);
   
   // Game status
   const [status, setStatus] = useState<string>("Welcome to HemiChess");
@@ -126,7 +128,9 @@ export function PlayClient() {
         setOrientation(gameData.color);
         setOpponentName(gameData.opponent?.name || 'Opponent');
         setOpponentElo(gameData.opponent?.elo || gameData.opponentElo || DEFAULT_ELO);
+        setOpponentAvatar(gameData.opponent?.avatar || null);
         setMyGameElo(gameData.myElo || DEFAULT_ELO);
+        setMyAvatar(gameData.myAvatar || null);
         setMyTurn(gameData.color === 'white');
         setMyTime(gameData.timeLeft);
         setOpponentTime(gameData.opponentTimeLeft);
@@ -216,14 +220,16 @@ export function PlayClient() {
       console.log('[GATEKEEPER] Matchmaking rejected:', error);
     });
 
-    socket.on('game_restored', ({ gameId: foundGameId, fen: initialFen, color, whiteTimeLeft, blackTimeLeft, moveHistory: history, opponentName: oppName, opponentElo: oppElo, myElo, drawOffer: restoredDrawOffer }) => {
+    socket.on('game_restored', ({ gameId: foundGameId, fen: initialFen, color, whiteTimeLeft, blackTimeLeft, moveHistory: history, opponentName: oppName, opponentElo: oppElo, opponentAvatar: oppAvatar, myElo, myAvatar: myAv, drawOffer: restoredDrawOffer }) => {
       console.log('[RESTORE] Game session restored!', { gameId: foundGameId, color, opponentElo: oppElo, myElo });
       setReconnecting(false);
       setGameId(foundGameId);
       setOrientation(color);
       setOpponentName(oppName || 'Opponent');
       setOpponentElo(oppElo || 200);
+      setOpponentAvatar(oppAvatar || null);
       setMyGameElo(myElo || DEFAULT_ELO);
+      setMyAvatar(myAv || null);
       setMyTime(color === 'white' ? whiteTimeLeft : blackTimeLeft);
       setOpponentTime(color === 'white' ? blackTimeLeft : whiteTimeLeft);
       setMoveHistory(history || []);
@@ -251,13 +257,15 @@ export function PlayClient() {
       setOpponentDisconnected(false);
     });
 
-    socket.on('game_found', ({ gameId: foundGameId, color, opponent, fen: initialFen, timeLeft, opponentTimeLeft, myElo, opponentElo: oppElo, isRanked, isFriendMatch }) => {
+    socket.on('game_found', ({ gameId: foundGameId, color, opponent, fen: initialFen, timeLeft, opponentTimeLeft, myElo, myAvatar: myAv, opponentElo: oppElo, isRanked, isFriendMatch }) => {
       console.log('Game found!', { gameId: foundGameId, color, myElo, opponentElo: oppElo, isRanked, isFriendMatch });
       setGameId(foundGameId);
       setOrientation(color);
       setOpponentName(opponent.name || 'Opponent');
       setOpponentElo(opponent.elo || oppElo || DEFAULT_ELO);
+      setOpponentAvatar(opponent.avatar || null);
       setMyGameElo(myElo || DEFAULT_ELO);
+      setMyAvatar(myAv || null);
       setMyTurn(color === 'white');
       setMyTime(timeLeft);
       setOpponentTime(opponentTimeLeft);
@@ -276,7 +284,7 @@ export function PlayClient() {
     });
 
     // Match starting from challenge acceptance
-    socket.on('MATCH_STARTING', ({ gameId: foundGameId, color, opponent, fen: initialFen, timeLeft, opponentTimeLeft, myElo, opponentElo: oppElo, isRanked, isFriendMatch }) => {
+    socket.on('MATCH_STARTING', ({ gameId: foundGameId, color, opponent, fen: initialFen, timeLeft, opponentTimeLeft, myElo, myAvatar: myAv, opponentElo: oppElo, isRanked, isFriendMatch }) => {
       console.log('[MATCH_STARTING] Friend match starting!', { gameId: foundGameId, color, isFriendMatch });
       
       // Check if we're already on the play page
@@ -294,6 +302,7 @@ export function PlayClient() {
             timeLeft,
             opponentTimeLeft,
             myElo,
+            myAvatar: myAv,
             opponentElo: oppElo,
             isRanked,
             isFriendMatch
@@ -309,7 +318,9 @@ export function PlayClient() {
       setOrientation(color);
       setOpponentName(opponent.name || 'Opponent');
       setOpponentElo(opponent.elo || oppElo || DEFAULT_ELO);
+      setOpponentAvatar(opponent.avatar || null);
       setMyGameElo(myElo || DEFAULT_ELO);
+      setMyAvatar(myAv || null);
       setMyTurn(color === 'white');
       setMyTime(timeLeft);
       setOpponentTime(opponentTimeLeft);
@@ -957,6 +968,7 @@ export function PlayClient() {
                   name={opponentName}
                   color={opponentColor}
                   elo={opponentElo}
+                  avatar={opponentAvatar}
                   timeMs={opponentTime}
                   active={!myTurn}
                   accent="rose"
@@ -1031,6 +1043,7 @@ export function PlayClient() {
                   name={playerDisplayName || 'You'}
                   color={orientation}
                   elo={myGameElo || userStats.elo}
+                  avatar={myAvatar}
                   wallet={walletBadge}
                   timeMs={myTime}
                   active={myTurn}

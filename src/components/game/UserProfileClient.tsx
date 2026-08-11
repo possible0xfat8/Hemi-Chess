@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { Avatar } from '@/components/Avatar';
 import { DEFAULT_ELO } from '@/hooks/useUserStats';
 import { Copy, Check, UserPlus, Loader2, UserCheck } from 'lucide-react';
 
@@ -128,13 +129,12 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[var(--surface-strong)] ring-1 ring-line-strong flex items-center justify-center text-3xl sm:text-4xl font-bold text-orange overflow-hidden">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-                ) : (
-                  displayName.charAt(0).toUpperCase()
-                )}
-              </div>
+              <Avatar
+                src={avatarUrl}
+                alt={displayName}
+                size="xl"
+                fallbackText={displayName}
+              />
               <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 bg-teal rounded-full border-4 border-[var(--canvas)] flex items-center justify-center">
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-canvas" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />

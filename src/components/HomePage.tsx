@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react'
 import { getBackendUrl } from '@/lib/config'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
+import { Avatar } from '@/components/Avatar'
 import heroChess from '@/assets/hero-chess.jpg'
 
 interface UserStats {
@@ -33,6 +34,7 @@ interface ActiveGame {
   game_id: string
   opponent_name: string
   opponent_elo: number
+  opponent_avatar?: string
   your_turn: boolean
   time_remaining: number
 }
@@ -304,9 +306,12 @@ export function HomePage() {
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="relative shrink-0">
-                      <div className="grid h-11 w-11 place-items-center rounded-full border border-line-strong bg-[var(--bg-elevated)] text-base font-bold text-ink">
-                        {game.opponent_name.charAt(0)}
-                      </div>
+                      <Avatar
+                        src={game.opponent_avatar}
+                        alt={game.opponent_name}
+                        size="md"
+                        fallbackText={game.opponent_name}
+                      />
                       {game.your_turn && (
                         <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--bg-elevated)] bg-teal" />
                       )}

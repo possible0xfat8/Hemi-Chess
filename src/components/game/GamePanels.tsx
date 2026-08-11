@@ -2,6 +2,7 @@ import { Chess } from "chess.js";
 import { getCapturedMaterial, pieceGlyph } from "@/lib/chess/material";
 import { useState } from "react";
 import { List, Swords, Settings2, Handshake, Flag, Check } from "lucide-react";
+import { Avatar } from "@/components/Avatar";
 
 export function formatClock(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -15,6 +16,7 @@ export function PlayerCard({
   name,
   color,
   elo,
+  avatar,
   wallet,
   timeMs,
   active,
@@ -23,13 +25,13 @@ export function PlayerCard({
   name: string;
   color: "white" | "black";
   elo: number;
+  avatar?: string | null;
   wallet?: string | undefined;
   timeMs: number;
   active: boolean;
   accent?: "emerald" | "rose";
 }) {
   const low = timeMs <= 30000;
-  const initial = (name || "?").charAt(0).toUpperCase();
 
   return (
     <div
@@ -40,17 +42,17 @@ export function PlayerCard({
       }`}
     >
       <div className="flex items-center gap-3 p-3">
-        {/* Avatar with active indicator - SMALLER */}
+        {/* Avatar with active indicator */}
         <div className="relative shrink-0">
-          <div
-            className={`grid h-11 w-11 place-items-center rounded-full text-base font-bold transition-all ${
-              accent === "emerald"
-                ? "bg-gradient-to-br from-teal to-blue text-canvas"
-                : "bg-gradient-to-br from-rose-500 to-danger-accent text-canvas"
-            }`}
-          >
-            {initial}
-          </div>
+          <Avatar
+            src={avatar}
+            alt={name}
+            size="md"
+            fallbackText={name}
+            className={accent === "emerald" 
+              ? "bg-gradient-to-br from-teal to-blue" 
+              : "bg-gradient-to-br from-rose-500 to-danger-accent"}
+          />
           {active && (
             <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange opacity-75"></span>

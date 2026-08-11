@@ -53,7 +53,7 @@ async function getUserStatsByWallet(walletAddress) {
   try {
     const { data, error } = await supabase
       .from('players')
-      .select('player_id, username, wallet_address, elo_rating, total_games, wins, losses, draws')
+      .select('player_id, username, wallet_address, avatar_url, elo_rating, total_games, wins, losses, draws')
       .eq('wallet_address', walletAddress.toLowerCase())
       .single();
     
@@ -118,7 +118,7 @@ async function upsertUserByWallet(walletAddress, username = null) {
     
     const { data: existing, error: readError } = await supabase
       .from('players')
-      .select('player_id, username, wallet_address, elo_rating, total_games, wins, losses, draws')
+      .select('player_id, username, wallet_address, avatar_url, elo_rating, total_games, wins, losses, draws')
       .eq('player_id', playerId)
       .maybeSingle();
     
@@ -364,7 +364,7 @@ async function listPlayers(limit = 100) {
   try {
     const { data, error } = await supabase
       .from('players')
-      .select('player_id, username, wallet_address, elo_rating, total_games, wins, losses, draws')
+      .select('player_id, username, wallet_address, avatar_url, elo_rating, total_games, wins, losses, draws')
       .not('wallet_address', 'is', null)
       .order('updated_at', { ascending: false })
       .limit(limit);
@@ -402,7 +402,7 @@ async function getLeaderboard(limit = 100, minGames = 0) {
   try {
     const { data, error } = await supabase
       .from('players')
-      .select('player_id, username, wallet_address, elo_rating, total_games, wins, losses, draws')
+      .select('player_id, username, wallet_address, avatar_url, elo_rating, total_games, wins, losses, draws')
       .not('wallet_address', 'is', null)
       .gte('total_games', minGames)
       .order('elo_rating', { ascending: false })
@@ -810,6 +810,7 @@ async function getFriendsList(userId, status = 'accepted') {
         friend:friend_id (
           player_id,
           username,
+          avatar_url,
           elo_rating,
           wallet_address,
           total_games,
@@ -819,6 +820,7 @@ async function getFriendsList(userId, status = 'accepted') {
         user:user_id (
           player_id,
           username,
+          avatar_url,
           elo_rating,
           wallet_address,
           total_games,
@@ -837,6 +839,7 @@ async function getFriendsList(userId, status = 'accepted') {
         friendship_id: f.id,
         friend_id: friendData.player_id,
         username: friendData.username,
+        avatar_url: friendData.avatar_url,
         elo_rating: friendData.elo_rating,
         wallet_address: friendData.wallet_address,
         total_games: friendData.total_games,
@@ -1133,7 +1136,7 @@ async function searchPlayers(searchTerm, limit = 10) {
     
     const { data: players, error } = await supabase
       .from('players')
-      .select('player_id, username, elo_rating, wallet_address, total_games, wins')
+      .select('player_id, username, avatar_url, elo_rating, wallet_address, total_games, wins')
       .or(`username.ilike.%${term}%,wallet_address.ilike.%${term}%`)
       .order('elo_rating', { ascending: false })
       .limit(limit);

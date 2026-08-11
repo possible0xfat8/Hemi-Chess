@@ -1411,19 +1411,35 @@ async function tryMatchPlayers() {
     if (whiteSocket) whiteSocket.join(gameId);
     if (blackSocket) blackSocket.join(gameId);
 
-    // Notify both players with ELO data
+    // Notify both players with ELO data and avatar URLs
     if (whiteSocket) {
+      // Fetch white player's avatar
+      let whiteAvatarUrl = null;
+      if (whitePlayer.walletAddress && dbEnabled) {
+        const whiteStats = await db.getUserStatsByWallet(whitePlayer.walletAddress);
+        whiteAvatarUrl = whiteStats?.avatar_url || null;
+      }
+      
+      // Fetch black player's avatar
+      let blackAvatarUrl = null;
+      if (blackPlayer.walletAddress && dbEnabled) {
+        const blackStats = await db.getUserStatsByWallet(blackPlayer.walletAddress);
+        blackAvatarUrl = blackStats?.avatar_url || null;
+      }
+      
       whiteSocket.emit('game_found', {
         gameId,
         color: 'white',
         opponent: { 
           name: blackPlayer.playerName,
-          elo: gameState.players.black.elo || DEFAULT_ELO 
+          elo: gameState.players.black.elo || DEFAULT_ELO,
+          avatar: blackAvatarUrl
         },
         fen: gameState.game.fen(),
         timeLeft: 600000,
         opponentTimeLeft: 600000,
-        myElo: gameState.players.white.elo || DEFAULT_ELO
+        myElo: gameState.players.white.elo || DEFAULT_ELO,
+        myAvatar: whiteAvatarUrl
       });
     }
 
@@ -1433,12 +1449,14 @@ async function tryMatchPlayers() {
         color: 'black',
         opponent: { 
           name: whitePlayer.playerName,
-          elo: gameState.players.white.elo || DEFAULT_ELO
+          elo: gameState.players.white.elo || DEFAULT_ELO,
+          avatar: whiteAvatarUrl
         },
         fen: gameState.game.fen(),
         timeLeft: 600000,
         opponentTimeLeft: 600000,
-        myElo: gameState.players.black.elo || DEFAULT_ELO
+        myElo: gameState.players.black.elo || DEFAULT_ELO,
+        myAvatar: blackAvatarUrl
       });
     }
 
@@ -1753,7 +1771,7 @@ io.on('connection', (socket) => {
   });
 
   // Check for active session on connection
-  socket.on('check_active_session', ({ walletAddress }) => {
+  socket.on('check_active_session', async ({ walletAddress }) => {
     if (!walletAddress) return;
     
     const walletLower = walletAddress.toLowerCase();
@@ -1776,6 +1794,22 @@ io.on('connection', (socket) => {
       gameState.players[color].connected = true;
       socket.join(gameId);
       
+      // Fetch avatar URLs for both players
+      let myAvatarUrl = null;
+      let opponentAvatarUrl = null;
+      
+      if (dbEnabled) {
+        if (gameState.players[color].walletAddress) {
+          const myStats = await db.getUserStatsByWallet(gameState.players[color].walletAddress);
+          myAvatarUrl = myStats?.avatar_url || null;
+        }
+        
+        if (gameState.players[otherColor].walletAddress) {
+          const oppStats = await db.getUserStatsByWallet(gameState.players[otherColor].walletAddress);
+          opponentAvatarUrl = oppStats?.avatar_url || null;
+        }
+      }
+      
       // Restore game session
       socket.emit('game_restored', {
         gameId,
@@ -1786,7 +1820,9 @@ io.on('connection', (socket) => {
         moveHistory: gameState.moveHistory,
         opponentName: gameState.players[otherColor].name,
         opponentElo: gameState.players[otherColor].elo || DEFAULT_ELO,
+        opponentAvatar: opponentAvatarUrl,
         myElo: gameState.players[color].elo || DEFAULT_ELO,
+        myAvatar: myAvatarUrl,
         drawOffer: gameState.drawOffer
       });
       
@@ -1842,18 +1878,36 @@ io.on('connection', (socket) => {
         gameState.players[color].socketId = socket.id;
         gameState.players[color].connected = true;
         
+        // Fetch avatar URLs
+        let myAvatarUrl = null;
+        let opponentAvatarUrl = null;
+        
+        if (dbEnabled) {
+          if (gameState.players[color].walletAddress) {
+            const myStats = await db.getUserStatsByWallet(gameState.players[color].walletAddress);
+            myAvatarUrl = myStats?.avatar_url || null;
+          }
+          
+          if (gameState.players[otherColor].walletAddress) {
+            const oppStats = await db.getUserStatsByWallet(gameState.players[otherColor].walletAddress);
+            opponentAvatarUrl = oppStats?.avatar_url || null;
+          }
+        }
+        
         socket.join(gameId);
         socket.emit('game_found', {
           gameId,
           color,
           opponent: { 
             name: gameState.players[otherColor].name,
-            elo: gameState.players[otherColor].elo || DEFAULT_ELO
+            elo: gameState.players[otherColor].elo || DEFAULT_ELO,
+            avatar: opponentAvatarUrl
           },
           fen: gameState.game.fen(),
           timeLeft: gameState.players[color].timeLeft,
           opponentTimeLeft: gameState.players[otherColor].timeLeft,
-          myElo: gameState.players[color].elo || DEFAULT_ELO
+          myElo: gameState.players[color].elo || DEFAULT_ELO,
+          myAvatar: myAvatarUrl
         });
         
         console.log(`[RECONNECT] ${effectiveName} reconnected to game ${gameId} as ${color}`);
@@ -2326,6 +2380,30 @@ io.on('connection', (socket) => {
       challengerSockets[0] && io.sockets.sockets.get(challengerSockets[0])?.join(gameId);
       socket.join(gameId);
       
+      // Fetch avatar URLs for both players
+      let challengerAvatarUrl = null;
+      let opponentAvatarUrl = null;
+      
+      if (dbEnabled) {
+        if (gameState.players.white.walletAddress) {
+          const whiteStats = await db.getUserStatsByWallet(gameState.players.white.walletAddress);
+          if (assignWhite) {
+            challengerAvatarUrl = whiteStats?.avatar_url || null;
+          } else {
+            opponentAvatarUrl = whiteStats?.avatar_url || null;
+          }
+        }
+        
+        if (gameState.players.black.walletAddress) {
+          const blackStats = await db.getUserStatsByWallet(gameState.players.black.walletAddress);
+          if (!assignWhite) {
+            challengerAvatarUrl = blackStats?.avatar_url || null;
+          } else {
+            opponentAvatarUrl = blackStats?.avatar_url || null;
+          }
+        }
+      }
+      
       // Emit MATCH_STARTING to both players
       const challengerColor = assignWhite ? 'white' : 'black';
       const opponentColor = assignWhite ? 'black' : 'white';
@@ -2337,11 +2415,13 @@ io.on('connection', (socket) => {
         opponent: {
           name: gameState.players[opponentColor].name,
           elo: gameState.players[opponentColor].elo,
+          avatar: opponentAvatarUrl
         },
         fen: gameState.game.fen(),
         timeLeft: challenge.timeControl,
         opponentTimeLeft: challenge.timeControl,
         myElo: gameState.players[challengerColor].elo,
+        myAvatar: challengerAvatarUrl,
         opponentElo: gameState.players[opponentColor].elo,
         isRanked: false,
         isFriendMatch: true,
@@ -2354,11 +2434,13 @@ io.on('connection', (socket) => {
         opponent: {
           name: gameState.players[challengerColor].name,
           elo: gameState.players[challengerColor].elo,
+          avatar: challengerAvatarUrl
         },
         fen: gameState.game.fen(),
         timeLeft: challenge.timeControl,
         opponentTimeLeft: challenge.timeControl,
         myElo: gameState.players[opponentColor].elo,
+        myAvatar: opponentAvatarUrl,
         opponentElo: gameState.players[challengerColor].elo,
         isRanked: false,
         isFriendMatch: true,

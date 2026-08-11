@@ -2,8 +2,10 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { ConnectWallet } from './ConnectWallet'
 import { ServerStatus } from './ServerStatus'
 import { NotificationBell } from './NotificationBell'
+import { Avatar } from './Avatar'
 import { useAccount } from 'wagmi'
 import { Gamepad2, User, Shield, Trophy, Users } from 'lucide-react'
+import { useUserStats } from '@/hooks/useUserStats'
 
 const ADMIN_WALLETS = ((import.meta.env['VITE_ADMIN_WALLETS'] as string | undefined) || '')
   .split(',')
@@ -23,6 +25,7 @@ const adminLink = { to: '/admin', label: 'Admin', icon: Shield } as const
 export function Navbar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { address, isConnected } = useAccount()
+  const { data: userStats } = useUserStats()
   
   // Check if connected wallet is an admin
   const isAdmin = isConnected && address && ADMIN_WALLETS.includes(address.toLowerCase())
@@ -101,7 +104,12 @@ export function Navbar() {
                     : 'text-ink-muted hover:text-ink hover:bg-[var(--surface-strong)]'
                 }`}
               >
-                <User className="w-4 h-4" />
+                <Avatar
+                  src={userStats?.avatar_url}
+                  alt={userStats?.username || 'Profile'}
+                  size="xs"
+                  fallbackText={userStats?.username}
+                />
                 <span>{profileLink.label}</span>
               </Link>
 
@@ -115,7 +123,12 @@ export function Navbar() {
                 }`}
                 title={profileLink.label}
               >
-                <User className="w-5 h-5" />
+                <Avatar
+                  src={userStats?.avatar_url}
+                  alt={userStats?.username || 'Profile'}
+                  size="xs"
+                  fallbackText={userStats?.username}
+                />
               </Link>
             </>
           )}

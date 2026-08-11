@@ -3,6 +3,7 @@ import { useAccount } from 'wagmi';
 import { getBackendUrl } from '@/lib/config';
 import { Users, Swords, UserMinus, Search, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { Avatar } from '@/components/Avatar';
 
 interface Friend {
   friendship_id: number;
@@ -263,13 +264,13 @@ export function FriendsList() {
                   className="flex items-center gap-3 p-3 bg-[var(--surface-strong)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
                 >
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange to-amber-600 flex items-center justify-center text-canvas font-bold shrink-0 overflow-hidden">
-                    {friend.avatar_url ? (
-                      <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover" />
-                    ) : (
-                      friend.username.charAt(0).toUpperCase()
-                    )}
-                  </div>
+                  <Avatar
+                    src={friend.avatar_url}
+                    alt={friend.username}
+                    size="md"
+                    fallbackText={friend.username}
+                    className="bg-gradient-to-br from-orange to-amber-600"
+                  />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -345,13 +346,13 @@ export function FriendsList() {
                     className="flex items-center gap-3 p-3 bg-[var(--surface-strong)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
                   >
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal to-blue-600 flex items-center justify-center text-canvas font-bold shrink-0 overflow-hidden">
-                      {player.avatar_url ? (
-                        <img src={player.avatar_url} alt={player.username} className="w-full h-full object-cover" />
-                      ) : (
-                        player.username.charAt(0).toUpperCase()
-                      )}
-                    </div>
+                    <Avatar
+                      src={player.avatar_url}
+                      alt={player.username}
+                      size="md"
+                      fallbackText={player.username}
+                      className="bg-gradient-to-br from-teal to-blue-600"
+                    />
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
