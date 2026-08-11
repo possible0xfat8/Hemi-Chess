@@ -8,6 +8,7 @@ interface Friend {
   friendship_id: number;
   friend_id: string;
   username: string;
+  avatar_url?: string;
   elo_rating: number;
   wallet_address: string;
   total_games: number;
@@ -20,6 +21,7 @@ interface Friend {
 interface SearchResult {
   player_id: string;
   username: string;
+  avatar_url?: string;
   elo_rating: number;
   wallet_address: string;
   total_games: number;
@@ -261,8 +263,12 @@ export function FriendsList() {
                   className="flex items-center gap-3 p-3 bg-[var(--surface-strong)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
                 >
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange to-amber-600 flex items-center justify-center text-canvas font-bold shrink-0">
-                    {friend.username.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange to-amber-600 flex items-center justify-center text-canvas font-bold shrink-0 overflow-hidden">
+                    {friend.avatar_url ? (
+                      <img src={friend.avatar_url} alt={friend.username} className="w-full h-full object-cover" />
+                    ) : (
+                      friend.username.charAt(0).toUpperCase()
+                    )}
                   </div>
 
                   {/* Info */}
@@ -339,8 +345,12 @@ export function FriendsList() {
                     className="flex items-center gap-3 p-3 bg-[var(--surface-strong)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
                   >
                     {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal to-blue-600 flex items-center justify-center text-canvas font-bold shrink-0">
-                      {player.username.charAt(0).toUpperCase()}
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal to-blue-600 flex items-center justify-center text-canvas font-bold shrink-0 overflow-hidden">
+                      {player.avatar_url ? (
+                        <img src={player.avatar_url} alt={player.username} className="w-full h-full object-cover" />
+                      ) : (
+                        player.username.charAt(0).toUpperCase()
+                      )}
                     </div>
 
                     {/* Info */}

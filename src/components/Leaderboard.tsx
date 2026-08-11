@@ -8,6 +8,7 @@ interface LeaderboardEntry {
   player_id: string;
   username: string;
   wallet_address: string;
+  avatar_url?: string;
   elo_rating: number;
   total_games: number;
   wins: number;
@@ -141,8 +142,12 @@ export function Leaderboard() {
                 </td>
                 <td className="px-4 lg:px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--surface-strong)] to-[var(--surface-strong)] ring-1 ring-line text-orange flex items-center justify-center text-canvas font-bold shrink-0">
-                      {entry.username.charAt(0).toUpperCase()}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--surface-strong)] to-[var(--surface-strong)] ring-1 ring-line text-orange flex items-center justify-center text-canvas font-bold shrink-0 overflow-hidden">
+                      {entry.avatar_url ? (
+                        <img src={entry.avatar_url} alt={entry.username} className="w-full h-full object-cover" />
+                      ) : (
+                        entry.username.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="font-semibold text-ink truncate">{entry.username}</div>
@@ -198,8 +203,12 @@ export function Leaderboard() {
             {/* Rank and Player Info */}
             <div className="flex items-center gap-2.5 mb-3">
               <div className="shrink-0">{getRankBadge(entry.rank)}</div>
-              <div className="w-9 h-9 shrink-0 rounded-full bg-[var(--surface-strong)] ring-1 ring-line text-orange flex items-center justify-center font-bold">
-                {entry.username.charAt(0).toUpperCase()}
+              <div className="w-9 h-9 shrink-0 rounded-full bg-[var(--surface-strong)] ring-1 ring-line text-orange flex items-center justify-center font-bold overflow-hidden">
+                {entry.avatar_url ? (
+                  <img src={entry.avatar_url} alt={entry.username} className="w-full h-full object-cover" />
+                ) : (
+                  entry.username.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-ink truncate leading-tight">{entry.username}</div>
