@@ -477,6 +477,39 @@ async function updatePlayerUsername(playerId, username) {
   }
 }
 
+// Update player avatar URL
+async function updatePlayerAvatar(playerId, avatarUrl) {
+  if (!isEnabled) return { success: false, error: 'Database not enabled' };
+  
+  try {
+    const { data, error } = await supabase
+      .from('players')
+      .update({
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('player_id', playerId.toLowerCase())
+      .select('player_id, username, wallet_address, avatar_url')
+      .single();
+    
+    if (error) {
+      console.error('[DB] Error updating avatar:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (!data) {
+      return { success: false, error: 'Player not found' };
+    }
+    
+    console.log(`[DB] ✓ Updated avatar for ${playerId.slice(0, 8)}...`);
+    
+    return { success: true, player: data };
+  } catch (err) {
+    console.error('[DB] updatePlayerAvatar error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   supabase,
   isEnabled,
@@ -487,6 +520,7 @@ module.exports = {
   upsertUserByWallet,
   recordMatchResult,
   updatePlayerUsername,
+  updatePlayerAvatar,
   listPlayers,
   countPlayers,
   getLeaderboard,

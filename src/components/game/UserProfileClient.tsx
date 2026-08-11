@@ -4,188 +4,111 @@ import { useAccount } from 'wagmi';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { DEFAULT_ELO } from '@/hooks/useUserStats';
-import { TrendingUp, TrendingDown, Copy, Check } from 'lucide-react';
+import { Copy, Check, UserPlus, Loader2, UserCheck } from 'lucide-react';
 
-export function ProfileClient() {
-  const { address, isConnected } = useAccount();
-  const [displayName, setDisplayName] = useState('');
-  const [newName, setNewName] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageOk, setMessageOk] = useState(false);
+interface UserProfileClientProps {
+  walletAddress: string;
+}
+
+export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
+  const { address: currentUserAddress, isConnected } = useAccount();
   const [stats, setStats] = useState<any>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [checkingFriendship, setCheckingFriendship] = useState(false);
 
-  // Load display name from database
+  const isOwnProfile = currentUserAddress?.toLowerCase() === walletAddress.toLowerCase();
+
+  // Fetch user stats
   useEffect(() => {
-    if (isConnected && address) {
-      // Fetch stats from backend (includes username)
-      fetchStats();
+    fetchStats();
+  }, [walletAddress]);
+
+  // Check friendship status
+  useEffect(() => {
+    if (isConnected && currentUserAddress && !isOwnProfile) {
+      checkFriendshipStatus();
     }
-  }, [isConnected, address]);
+  }, [isConnected, currentUserAddress, walletAddress, isOwnProfile]);
 
   const fetchStats = async () => {
-    if (!address) return;
-    
     setIsLoadingStats(true);
     try {
       const apiUrl = getBackendUrl();
-      const response = await fetch(`${apiUrl}/api/player/${address.toLowerCase()}/stats`);
+      const response = await fetch(`${apiUrl}/api/player/${walletAddress.toLowerCase()}/stats`);
       
       if (response.ok) {
         const data = await response.json();
         setStats(data);
-        
-        // Set display name from database
-        if (data.username) {
-          setDisplayName(data.username);
-          // Only set newName if it's not the default wallet format
-          const isDefaultName = data.username.includes('...') && data.username.length < 20;
-          setNewName(isDefaultName ? '' : data.username);
-        } else {
-          // Fallback to wallet address
-          const defaultName = `${address.slice(0, 6)}...${address.slice(-4)}`;
-          setDisplayName(defaultName);
-          setNewName('');
-        }
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
-      // Fallback to wallet address on error
-      const defaultName = `${address.slice(0, 6)}...${address.slice(-4)}`;
-      setDisplayName(defaultName);
-      setNewName('');
     } finally {
       setIsLoadingStats(false);
     }
   };
 
-  const handleSaveName = async () => {
-    if (!isConnected || !address) {
-      setMessageOk(false); 
-      setMessage('Please connect your wallet first');
-      return;
-    }
-
-    const trimmedName = newName.trim();
+  const checkFriendshipStatus = async () => {
+    if (!currentUserAddress) return;
     
-    if (trimmedName && trimmedName.length < 3) {
-      setMessageOk(false); 
-      setMessage('Display name must be at least 3 characters');
-      return;
-    }
-
-    if (trimmedName && trimmedName.length > 20) {
-      setMessageOk(false); 
-      setMessage('Display name must be 20 characters or less');
-      return;
-    }
-
-    setIsSaving(true);
-    
+    setCheckingFriendship(true);
     try {
       const apiUrl = getBackendUrl();
-      const usernameToSave = trimmedName || `${address.slice(0, 6)}...${address.slice(-4)}`;
-      
-      const response = await fetch(`${apiUrl}/api/player/${address.toLowerCase()}/username`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameToSave }),
-      });
+      const response = await fetch(`${apiUrl}/api/friends/${currentUserAddress.toLowerCase()}`);
       
       if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.player) {
-          setDisplayName(result.player.username);
-          setStats(result.player);
-          setMessageOk(true);
-          setMessage(trimmedName ? 'Display name saved!' : 'Display name cleared — using wallet address');
-        } else {
-          setMessageOk(false);
-          setMessage(result.error || 'Failed to save display name');
-        }
-      } else {
-        const error = await response.json();
-        setMessageOk(false);
-        setMessage(error.error || 'Failed to save display name');
+        const friends = await response.json();
+        const isFriendAlready = friends.some((f: any) => 
+          f.friend_id.toLowerCase() === walletAddress.toLowerCase()
+        );
+        setIsFriend(isFriendAlready);
       }
-      
-      setTimeout(() => setMessage(''), 3000);
     } catch (error) {
-      console.error('Error saving username:', error);
-      setMessageOk(false);
-      setMessage('Failed to save display name');
-      setTimeout(() => setMessage(''), 3000);
+      console.error('Failed to check friendship:', error);
     } finally {
-      setIsSaving(false);
+      setCheckingFriendship(false);
     }
   };
 
-  const handleClearName = async () => {
-    if (!address) return;
+  const sendFriendRequest = async () => {
+    if (!currentUserAddress) return;
     
-    setNewName('');
-    const defaultName = `${address.slice(0, 6)}...${address.slice(-4)}`;
-    
+    setSendingRequest(true);
     try {
       const apiUrl = getBackendUrl();
-      const response = await fetch(`${apiUrl}/api/player/${address.toLowerCase()}/username`, {
+      const response = await fetch(`${apiUrl}/api/friends/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: defaultName }),
+        body: JSON.stringify({
+          userId: currentUserAddress.toLowerCase(),
+          friendId: walletAddress.toLowerCase(),
+        }),
       });
       
       if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.player) {
-          setDisplayName(result.player.username);
-          setStats(result.player);
-          setMessageOk(true);
-          setMessage('Display name cleared');
-        }
+        alert('Friend request sent!');
+        setIsFriend(true);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to send friend request');
       }
     } catch (error) {
-      console.error('Error clearing username:', error);
+      console.error('Error sending friend request:', error);
+      alert('Failed to send friend request');
+    } finally {
+      setSendingRequest(false);
     }
-    
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const copyToClipboard = () => {
-    if (address) {
-      navigator.clipboard.writeText(address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    navigator.clipboard.writeText(walletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!isConnected || !address) {
-    return (
-      <div className="min-h-screen bg-canvas flex flex-col">
-        <Navbar />
-        <main className="max-w-4xl mx-auto px-4 py-16 flex-1">
-          <div className="surface p-12 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 bg-[var(--surface-strong)] rounded-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-extrabold mb-3">Profile</h1>
-            <p className="mb-8 text-ink-muted">Connect a wallet to view your rating and match record.</p>
-            <a href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--surface-strong)] hover:bg-[var(--surface-hover)] border border-line text-ink rounded-xl font-semibold transition-all">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Game
-            </a>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
+  const displayName = stats?.username || `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
   const winRate = stats && stats.total_games > 0 ? parseFloat(stats.win_rate).toFixed(1) : '0';
   const currentElo = stats?.elo_rating ?? DEFAULT_ELO;
 
@@ -217,7 +140,7 @@ export function ProfileClient() {
                   onClick={copyToClipboard}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface-strong)] hover:bg-[var(--surface-hover)] border border-line rounded-lg text-sm font-medium transition-colors"
                 >
-                  <span className="font-mono text-ink-muted">{address.slice(0, 6)}...{address.slice(-4)}</span>
+                  <span className="font-mono text-ink-muted">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
                   {copied ? <Check className="w-4 h-4 text-teal" /> : <Copy className="w-4 h-4 text-ink-faint" />}
                 </button>
                 <div className="flex items-center gap-2">
@@ -236,10 +159,44 @@ export function ProfileClient() {
             </div>
 
             {/* Actions */}
-            <div className="w-full sm:w-auto mt-3 sm:mt-0">
-              <a href="/" className="block sm:inline-block text-center px-4 py-2 bg-orange hover:bg-orange/90 text-canvas rounded-lg font-semibold transition-colors">
-                Play Chess
-              </a>
+            <div className="w-full sm:w-auto mt-3 sm:mt-0 flex gap-2">
+              {isOwnProfile ? (
+                <a href="/profile" className="flex-1 sm:flex-none text-center px-4 py-2 bg-orange hover:bg-orange/90 text-canvas rounded-lg font-semibold transition-colors">
+                  Edit Profile
+                </a>
+              ) : isConnected ? (
+                <>
+                  {checkingFriendship ? (
+                    <button disabled className="flex-1 sm:flex-none px-4 py-2 bg-line text-ink-faint rounded-lg font-semibold cursor-not-allowed">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                    </button>
+                  ) : isFriend ? (
+                    <button disabled className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-teal/20 text-teal border border-teal rounded-lg font-semibold cursor-default">
+                      <UserCheck className="w-5 h-5" />
+                      Friends
+                    </button>
+                  ) : (
+                    <button
+                      onClick={sendFriendRequest}
+                      disabled={sendingRequest}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-orange hover:bg-orange/90 disabled:bg-line text-canvas disabled:text-ink-faint rounded-lg font-semibold transition-colors disabled:cursor-not-allowed"
+                    >
+                      {sendingRequest ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <UserPlus className="w-5 h-5" />
+                          Add Friend
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="text-sm text-ink-muted text-center">
+                  Connect wallet to add friend
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -291,7 +248,6 @@ export function ProfileClient() {
                       <span className="text-base sm:text-lg font-bold text-danger-accent">{stats.losses || 0}</span>
                     </div>
                   </div>
-
                 </>
               ) : (
                 <div className="text-center py-12">
@@ -301,55 +257,9 @@ export function ProfileClient() {
                     </svg>
                   </div>
                   <p className="text-ink-muted mb-2">No stats yet</p>
-                  <p className="text-sm text-ink-faint">Play a ranked game to build your record.</p>
+                  <p className="text-sm text-ink-faint">This player hasn't played any ranked games.</p>
                 </div>
               )}
-            </div>
-
-            {/* Edit Profile */}
-            <div className="surface p-4 sm:p-6">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Display name</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-ink-muted mb-2 block">Display Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter a custom name"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    className="w-full bg-[var(--surface)] border border-line focus:border-orange focus:ring-1 focus:ring-orange rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-ink placeholder-ink-faint transition-all outline-none text-sm sm:text-base"
-                    maxLength={20}
-                  />
-                  <p className="mt-1.5 text-xs text-ink-faint">3–20 characters. Leave blank to use your wallet address.</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <button
-                    onClick={handleSaveName}
-                    disabled={isSaving}
-                    className="flex-1 px-4 py-2.5 bg-orange hover:bg-orange/90 disabled:bg-line text-canvas disabled:text-ink-faint font-semibold rounded-lg transition-all disabled:cursor-not-allowed text-sm sm:text-base"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button
-                    onClick={handleClearName}
-                    className="px-4 py-2.5 bg-[var(--surface-strong)] hover:bg-[var(--surface-hover)] border border-line text-ink rounded-lg font-medium transition-all text-sm sm:text-base"
-                  >
-                    Clear
-                  </button>
-                </div>
-
-                {message && (
-                  <div className={`p-3 rounded-lg text-sm font-medium text-center ${
-                    messageOk 
-                      ? 'bg-teal/10 border border-teal/30 text-teal' 
-                      : 'bg-danger-accent/10 border border-danger-accent/30 text-danger-accent'
-                  }`}>
-                    {message}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 

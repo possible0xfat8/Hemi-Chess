@@ -15,6 +15,7 @@ import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as UserAddressRouteImport } from './routes/user.$address'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UserAddressRoute = UserAddressRouteImport.update({
+  id: '/user/$address',
+  path: '/user/$address',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/user/$address': typeof UserAddressRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/user/$address': typeof UserAddressRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,12 +79,27 @@ export interface FileRoutesById {
   '/leaderboard': typeof LeaderboardRoute
   '/play': typeof PlayRoute
   '/profile': typeof ProfileRoute
+  '/user/$address': typeof UserAddressRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/friends' | '/leaderboard' | '/play' | '/profile'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/friends'
+    | '/leaderboard'
+    | '/play'
+    | '/profile'
+    | '/user/$address'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/friends' | '/leaderboard' | '/play' | '/profile'
+  to:
+    | '/'
+    | '/admin'
+    | '/friends'
+    | '/leaderboard'
+    | '/play'
+    | '/profile'
+    | '/user/$address'
   id:
     | '__root__'
     | '/'
@@ -85,6 +108,7 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/play'
     | '/profile'
+    | '/user/$address'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +118,7 @@ export interface RootRouteChildren {
   LeaderboardRoute: typeof LeaderboardRoute
   PlayRoute: typeof PlayRoute
   ProfileRoute: typeof ProfileRoute
+  UserAddressRoute: typeof UserAddressRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -140,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/user/$address': {
+      id: '/user/$address'
+      path: '/user/$address'
+      fullPath: '/user/$address'
+      preLoaderRoute: typeof UserAddressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -150,7 +182,18 @@ const rootRouteChildren: RootRouteChildren = {
   LeaderboardRoute: LeaderboardRoute,
   PlayRoute: PlayRoute,
   ProfileRoute: ProfileRoute,
+  UserAddressRoute: UserAddressRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

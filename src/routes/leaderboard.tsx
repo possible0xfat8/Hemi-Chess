@@ -8,6 +8,9 @@ const Web3Provider = lazy(() =>
 const Navbar = lazy(() =>
   import("@/components/Navbar").then((m) => ({ default: m.Navbar })),
 );
+const Footer = lazy(() =>
+  import("@/components/Footer").then((m) => ({ default: m.Footer })),
+);
 const Leaderboard = lazy(() =>
   import("@/components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
 );
@@ -37,10 +40,10 @@ function LeaderboardPage() {
   return (
     <ClientOnly fallback={<div className="min-h-screen bg-canvas" />}>
       <Web3Provider>
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-screen bg-canvas flex flex-col">
           <Navbar />
 
-          <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex-1">
             <div className="mb-4 sm:mb-6">
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Leaderboard
@@ -49,6 +52,8 @@ function LeaderboardPage() {
 
             <Leaderboard />
           </main>
+
+          <Footer />
         </div>
       </Web3Provider>
     </ClientOnly>

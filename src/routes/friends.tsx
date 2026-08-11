@@ -8,6 +8,9 @@ const Web3Provider = lazy(() =>
 const Navbar = lazy(() =>
   import("@/components/Navbar").then((m) => ({ default: m.Navbar })),
 );
+const Footer = lazy(() =>
+  import("@/components/Footer").then((m) => ({ default: m.Footer })),
+);
 const FriendsList = lazy(() =>
   import("@/components/FriendsList").then((m) => ({ default: m.FriendsList })),
 );
@@ -37,11 +40,12 @@ function FriendsPage() {
   return (
     <ClientOnly fallback={<div className="min-h-screen bg-[#0B0E14]" />}>
       <Web3Provider>
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-screen bg-canvas flex flex-col">
           <Navbar />
-          <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex-1">
             <FriendsList />
           </main>
+          <Footer />
         </div>
       </Web3Provider>
     </ClientOnly>

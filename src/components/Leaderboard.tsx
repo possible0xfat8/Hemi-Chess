@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getBackendUrl } from '@/lib/config';
 import { Trophy, TrendingUp, Medal } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
 
 interface LeaderboardEntry {
   rank: number;
@@ -16,6 +17,7 @@ interface LeaderboardEntry {
 }
 
 export function Leaderboard() {
+  const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +44,10 @@ export function Leaderboard() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleProfileClick = (walletAddress: string) => {
+    navigate({ to: '/user/$address', params: { address: walletAddress } });
   };
 
   const getRankBadge = (rank: number) => {
@@ -127,7 +133,8 @@ export function Leaderboard() {
             {leaderboard.map((entry) => (
               <tr 
                 key={entry.player_id} 
-                className="hover:bg-[var(--surface-strong)] transition-colors"
+                onClick={() => handleProfileClick(entry.wallet_address)}
+                className="hover:bg-[var(--surface-strong)] transition-colors cursor-pointer"
               >
                 <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                   {getRankBadge(entry.rank)}
@@ -183,7 +190,11 @@ export function Leaderboard() {
       {/* Mobile Card View */}
       <div className="md:hidden divide-y divide-line">
         {leaderboard.map((entry) => (
-          <div key={entry.player_id} className="p-3 hover:bg-[var(--surface-strong)] transition-colors">
+          <div 
+            key={entry.player_id} 
+            onClick={() => handleProfileClick(entry.wallet_address)}
+            className="p-3 hover:bg-[var(--surface-strong)] transition-colors cursor-pointer"
+          >
             {/* Rank and Player Info */}
             <div className="flex items-center gap-2.5 mb-3">
               <div className="shrink-0">{getRankBadge(entry.rank)}</div>

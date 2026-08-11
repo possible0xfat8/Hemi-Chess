@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from 'react'
 import { getBackendUrl } from '@/lib/config'
 import { Navbar } from '@/components/Navbar'
+import { Footer } from '@/components/Footer'
 import heroChess from '@/assets/hero-chess.jpg'
 
 interface UserStats {
@@ -158,10 +159,10 @@ export function HomePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-canvas pb-24 md:pb-10">
+    <div className="min-h-screen bg-canvas pb-24 md:pb-10 flex flex-col">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-4 sm:px-5 sm:space-y-5">
+      <main className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-4 sm:px-5 sm:space-y-5 flex-1">
         {/* HERO */}
         <section className="surface relative overflow-hidden p-0">
           <div className="pointer-events-none absolute inset-0">
@@ -333,6 +334,8 @@ export function HomePage() {
           </section>
         )}
       </main>
+
+      <Footer />
 
       {/* MOBILE BOTTOM NAVIGATION */}
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-[color-mix(in_oklab,var(--bg-elevated)_94%,transparent)] backdrop-blur-xl md:hidden">

@@ -8,6 +8,8 @@ const { Chess } = require('chess.js');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+const sharp = require('sharp');
 
 // Import match settlement service (blockchain oracle)
 const { settleMatch, isSettlementEnabled, getOracleAddress } = require('./services/matchSettlement');
@@ -23,6 +25,9 @@ const {
   reconcileInBackground,
   readOracleEthBalance,
 } = require('./services/eloSync');
+
+// R2 Storage for avatars
+const { isR2Enabled, uploadAvatar, deleteAvatar, getAvatarUrl } = require('./services/r2Storage');
 
 
 // Backend URL Configuration (Authoritative Source)
@@ -89,6 +94,22 @@ try {
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Configure multer for avatar uploads (memory storage)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+    }
+  },
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -359,6 +380,106 @@ app.post('/api/player/:playerId/username', async (req, res) => {
   } catch (err) {
     console.error('[API] Error updating username:', err);
     res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// Upload avatar
+app.post('/api/player/:playerId/avatar', upload.single('avatar'), async (req, res) => {
+  if (!isR2Enabled) {
+    return res.status(503).json({ error: 'Avatar uploads not configured' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file provided' });
+  }
+
+  try {
+    const walletAddress = req.params.playerId.toLowerCase();
+
+    // Process image with sharp: resize to 400x400, convert to JPEG, optimize
+    const processedImage = await sharp(req.file.buffer)
+      .resize(400, 400, {
+        fit: 'cover',
+        position: 'center',
+      })
+      .jpeg({
+        quality: 85,
+        progressive: true,
+      })
+      .toBuffer();
+
+    // Upload to R2
+    const result = await uploadAvatar(walletAddress, processedImage, 'image/jpeg');
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    // Update database with avatar URL
+    if (dbEnabled) {
+      try {
+        await db.updatePlayerAvatar(walletAddress, result.url);
+      } catch (dbErr) {
+        console.error('[API] Failed to update avatar URL in DB:', dbErr);
+        // Continue anyway - the image is uploaded
+      }
+    }
+
+    console.log(`[AVATAR] Uploaded for ${walletAddress.slice(0, 8)}`);
+    res.json({ success: true, avatarUrl: result.url });
+  } catch (err) {
+    console.error('[API] Avatar upload error:', err);
+    res.status(500).json({ error: 'Failed to process image' });
+  }
+});
+
+// Get avatar URL
+app.get('/api/player/:playerId/avatar', async (req, res) => {
+  try {
+    const walletAddress = req.params.playerId.toLowerCase();
+    const avatarUrl = getAvatarUrl(walletAddress);
+
+    if (!avatarUrl) {
+      return res.status(404).json({ error: 'No avatar found' });
+    }
+
+    res.json({ avatarUrl });
+  } catch (err) {
+    console.error('[API] Get avatar error:', err);
+    res.status(500).json({ error: 'Failed to get avatar' });
+  }
+});
+
+// Delete avatar
+app.delete('/api/player/:playerId/avatar', async (req, res) => {
+  if (!isR2Enabled) {
+    return res.status(503).json({ error: 'Avatar storage not configured' });
+  }
+
+  try {
+    const walletAddress = req.params.playerId.toLowerCase();
+
+    // Delete from R2
+    const result = await deleteAvatar(walletAddress);
+
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    // Update database to remove avatar URL
+    if (dbEnabled) {
+      try {
+        await db.updatePlayerAvatar(walletAddress, null);
+      } catch (dbErr) {
+        console.error('[API] Failed to remove avatar URL from DB:', dbErr);
+      }
+    }
+
+    console.log(`[AVATAR] Deleted for ${walletAddress.slice(0, 8)}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[API] Avatar delete error:', err);
+    res.status(500).json({ error: 'Failed to delete avatar' });
   }
 });
 
