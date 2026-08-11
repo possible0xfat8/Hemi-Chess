@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { AvatarUpload } from '@/components/AvatarUpload';
 import { DEFAULT_ELO } from '@/hooks/useUserStats';
 import { TrendingUp, TrendingDown, Copy, Check } from 'lucide-react';
 
@@ -16,6 +17,7 @@ export function ProfileClient() {
   const [stats, setStats] = useState<any>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // Load display name from database
   useEffect(() => {
@@ -48,6 +50,11 @@ export function ProfileClient() {
           const defaultName = `${address.slice(0, 6)}...${address.slice(-4)}`;
           setDisplayName(defaultName);
           setNewName('');
+        }
+        
+        // Set avatar URL if exists
+        if (data.avatar_url) {
+          setAvatarUrl(data.avatar_url);
         }
       }
     } catch (error) {
@@ -199,8 +206,12 @@ export function ProfileClient() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[var(--surface-strong)] ring-1 ring-line-strong flex items-center justify-center text-3xl sm:text-4xl font-bold text-orange">
-                {displayName.charAt(0).toUpperCase()}
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[var(--surface-strong)] ring-1 ring-line-strong flex items-center justify-center text-3xl sm:text-4xl font-bold text-orange overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  displayName.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 bg-teal rounded-full border-4 border-[var(--canvas)] flex items-center justify-center">
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-canvas" fill="currentColor" viewBox="0 0 20 20">
@@ -307,6 +318,21 @@ export function ProfileClient() {
             </div>
 
             {/* Edit Profile */}
+            <div className="surface p-4 sm:p-6">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Profile Picture</h2>
+              
+              <AvatarUpload
+                currentAvatarUrl={avatarUrl}
+                walletAddress={address}
+                onUploadSuccess={(url) => {
+                  setAvatarUrl(url);
+                  // Refresh stats to get updated avatar URL
+                  fetchStats();
+                }}
+              />
+            </div>
+
+            {/* Edit Display Name */}
             <div className="surface p-4 sm:p-6">
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Display name</h2>
               

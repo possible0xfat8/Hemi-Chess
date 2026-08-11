@@ -18,6 +18,7 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
   const [sendingRequest, setSendingRequest] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [checkingFriendship, setCheckingFriendship] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const isOwnProfile = currentUserAddress?.toLowerCase() === walletAddress.toLowerCase();
 
@@ -42,6 +43,11 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
       if (response.ok) {
         const data = await response.json();
         setStats(data);
+        
+        // Set avatar URL if exists
+        if (data.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -122,8 +128,12 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[var(--surface-strong)] ring-1 ring-line-strong flex items-center justify-center text-3xl sm:text-4xl font-bold text-orange">
-                {displayName.charAt(0).toUpperCase()}
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[var(--surface-strong)] ring-1 ring-line-strong flex items-center justify-center text-3xl sm:text-4xl font-bold text-orange overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  displayName.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 bg-teal rounded-full border-4 border-[var(--canvas)] flex items-center justify-center">
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-canvas" fill="currentColor" viewBox="0 0 20 20">
