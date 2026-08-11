@@ -999,7 +999,7 @@ export function PlayClient() {
               {/* Center - Chessboard only */}
               <div className="order-1 lg:order-2">
                 <div className="surface p-2 sm:p-3">
-                  <div className="mx-auto" style={{ maxWidth: '600px' }}>
+                  <div className="mx-auto" style={{ maxWidth: '500px' }}>
                     <Chessboard
                       options={{
                         position: fen,
