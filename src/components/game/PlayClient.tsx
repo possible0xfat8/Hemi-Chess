@@ -852,13 +852,6 @@ export function PlayClient() {
                 </h1>
                 <p className="mt-1 text-xs sm:text-sm text-ink-muted">Ranked chess on Hemi Testnet</p>
               </div>
-              <div className="surface flex items-center gap-2 px-3 py-2 shrink-0">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange opacity-70" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange" />
-                </span>
-                <span className="truncate text-xs font-medium text-ink-muted">{status}</span>
-              </div>
             </header>
 
             {isConnected && address && (
@@ -933,8 +926,23 @@ export function PlayClient() {
                 )}
               </section>
 
-              {/* Right column: Recent Form + Online Users */}
+              {/* Right column: Online Users + Live Games + Recent Form */}
               <div className="space-y-4 sm:space-y-6">
+                {/* Online Users + Live Games: Stacked on mobile, stacked on larger screens */}
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Online Users */}
+                  {isConnected && address && (
+                    <OnlineUsers 
+                      currentUserId={address.toLowerCase()}
+                      onChallenge={handleChallenge}
+                    />
+                  )}
+
+                  {/* Live Games */}
+                  <LiveGames onSpectate={handleSpectate} />
+                </div>
+
+                {/* Recent Form - moved below Online Users and Live Games */}
                 <section className="surface p-6 sm:p-8">
                   <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Recent form</h2>
                   <div className="flex flex-wrap items-center gap-2">
@@ -984,17 +992,6 @@ export function PlayClient() {
                     </a>
                   </div>
                 </section>
-
-                {/* Online Users */}
-                {isConnected && address && (
-                  <OnlineUsers 
-                    currentUserId={address.toLowerCase()}
-                    onChallenge={handleChallenge}
-                  />
-                )}
-
-                {/* Live Games */}
-                <LiveGames onSpectate={handleSpectate} />
               </div>
             </div>
           </div>

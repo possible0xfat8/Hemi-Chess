@@ -50,25 +50,17 @@ export function TimeControlSelector({
   onChange: (id: TimeControlId) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
-      {TIME_CONTROLS.map((tc) => {
-        const active = tc.id === value;
-        return (
-          <button
-            key={tc.id}
-            onClick={() => onChange(tc.id)}
-            className={`rounded-xl border px-2 sm:px-3 py-3 sm:py-4 text-center transition-all ${
-              active
-                ? "border-orange bg-orange-soft text-orange"
-                : "border-line bg-[var(--surface-strong)] text-ink-muted hover:border-line-strong hover:text-ink"
-            }`}
-          >
-            <span className="block text-base sm:text-lg font-extrabold">{tc.label}</span>
-            <span className="block text-[10px] sm:text-[11px] font-medium uppercase tracking-wide opacity-70">{tc.sub}</span>
-          </button>
-        );
-      })}
-    </div>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as TimeControlId)}
+      className="w-full rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-3 text-base font-semibold text-ink transition-colors hover:border-line-strong focus:border-orange focus:outline-none focus:ring-2 focus:ring-orange/20 cursor-pointer"
+    >
+      {TIME_CONTROLS.map((tc) => (
+        <option key={tc.id} value={tc.id} className="bg-[var(--surface-strong)] text-ink">
+          {tc.label} - {tc.sub}
+        </option>
+      ))}
+    </select>
   );
 }
 

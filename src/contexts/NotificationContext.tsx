@@ -189,11 +189,56 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       alert(data.error);
     };
 
+    const handleMatchStarting = (data: {
+      gameId: string;
+      color: 'white' | 'black';
+      opponent: { name: string; elo: number; avatar?: string | null };
+      fen: string;
+      timeLeft: number;
+      opponentTimeLeft: number;
+      myElo: number;
+      myAvatar: string | null;
+      opponentElo: number;
+      isRanked: boolean;
+      isFriendMatch: boolean;
+    }) => {
+      console.log('[MATCH_STARTING] Global handler - Redirecting to play page', data);
+      
+      // Check if we're already on the play page
+      const isOnPlayPage = typeof window !== 'undefined' && window.location.pathname === '/play';
+      
+      if (!isOnPlayPage) {
+        // Store game data and navigate to play page
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('pendingGame', JSON.stringify({
+            gameId: data.gameId,
+            color: data.color,
+            opponent: data.opponent,
+            fen: data.fen,
+            timeLeft: data.timeLeft,
+            opponentTimeLeft: data.opponentTimeLeft,
+            myElo: data.myElo,
+            myAvatar: data.myAvatar,
+            opponentElo: data.opponentElo,
+            isRanked: data.isRanked,
+            isFriendMatch: data.isFriendMatch
+          }));
+          
+          console.log('[MATCH_STARTING] Stored game data in sessionStorage, redirecting to /play');
+          window.location.href = '/play';
+        }
+      } else {
+        // Already on play page - PlayClient will handle it
+        console.log('[MATCH_STARTING] Already on play page, PlayClient will handle this');
+      }
+    };
+
     socket.on('NOTIFICATION_RECEIVED', handleNotificationReceived);
     socket.on('CHALLENGE_RECEIVED', handleChallengeReceived);
     socket.on('CHALLENGE_EXPIRED', handleChallengeExpired);
     socket.on('CHALLENGE_CANCELLED', handleChallengeCancelled);
     socket.on('CHALLENGE_ERROR', handleChallengeError);
+    socket.on('MATCH_STARTING', handleMatchStarting);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -202,6 +247,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       socket.off('CHALLENGE_EXPIRED', handleChallengeExpired);
       socket.off('CHALLENGE_CANCELLED', handleChallengeCancelled);
       socket.off('CHALLENGE_ERROR', handleChallengeError);
+      socket.off('MATCH_STARTING', handleMatchStarting);
     };
   }, [isConnected, address]);
 

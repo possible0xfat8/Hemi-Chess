@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { X, Users, Eye } from 'lucide-react';
 import { getSocket } from '@/lib/socket';
-import { PlayerCard } from '@/components/game/GamePanels';
 
 interface SpectatorViewProps {
   gameId: string;
@@ -12,8 +11,7 @@ interface SpectatorViewProps {
   onClose: () => void;
 }
 
-export function SpectatorView({ gameId, whitePlayer, blackPlayer, onClose }: SpectatorViewProps) {
-  const [game, setGame] = useState<Chess>(new Chess());
+function SpectatorViewComponent({ gameId, whitePlayer, blackPlayer, onClose }: SpectatorViewProps) {
   const [fen, setFen] = useState<string>("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   const [whiteTime, setWhiteTime] = useState<number>(600000);
   const [blackTime, setBlackTime] = useState<number>(600000);
@@ -24,76 +22,154 @@ export function SpectatorView({ gameId, whitePlayer, blackPlayer, onClose }: Spe
   const [connected, setConnected] = useState(false);
   const [currentTurn, setCurrentTurn] = useState<'w' | 'b'>('w');
 
+  // Function to rebuild board position from move history
+  const rebuildBoardFromMoves = (moves: any[]) => {
+    if (!moves || moves.length === 0) {
+      console.log('[SPECTATE] 📋 No moves to rebuild, using starting position');
+      setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+      setCurrentTurn('w');
+      return true;
+    }
+
+    console.log('[SPECTATE] 📋 Rebuilding board from', moves.length, 'moves');
+    const chess = new Chess();
+    
+    try {
+      for (let i = 0; i < moves.length; i++) {
+        const moveData = moves[i];
+        
+        // Extract SAN notation from moveData
+        let sanMove: string | null = null;
+        if (typeof moveData === 'string') {
+          sanMove = moveData;
+        } else if (moveData.move && typeof moveData.move === 'string') {
+          sanMove = moveData.move;
+        } else if (moveData.san) {
+          sanMove = moveData.san;
+        }
+        
+        if (!sanMove) {
+          console.error(`[SPECTATE] ❌ Move ${i + 1}: Invalid format, no SAN found:`, moveData);
+          return false;
+        }
+        
+        console.log(`[SPECTATE] Move ${i + 1}: Applying "${sanMove}"`);
+        const result = chess.move(sanMove);
+        
+        if (!result) {
+          console.error(`[SPECTATE] ❌ Move ${i + 1}: Failed to apply "${sanMove}"`);
+          console.error('[SPECTATE] Current board FEN:', chess.fen());
+          return false;
+        }
+        
+        console.log(`[SPECTATE] ✅ Move ${i + 1}: Applied "${sanMove}" -> FEN:`, chess.fen());
+      }
+      
+      const finalFen = chess.fen();
+      console.log('[SPECTATE] ✅ Rebuild complete! Final FEN:', finalFen);
+      console.log('[SPECTATE] Setting state with', moves.length, 'moves applied');
+      
+      setFen(finalFen);
+      setCurrentTurn(chess.turn());
+      
+      return true;
+    } catch (error) {
+      console.error('[SPECTATE] ❌ Exception during rebuild:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     const socket = getSocket();
     
+    console.log('[SPECTATE] Mounting - joining game:', gameId);
+    console.log('[SPECTATE] Player data:', { whitePlayer, blackPlayer });
+    
     // Join as spectator
-    console.log('[SPECTATE] Joining game:', gameId);
     socket.emit('spectate_game', { gameId });
     
-    // Listen for spectate events
-    socket.on('spectate_joined', (data) => {
-      console.log('[SPECTATE] Joined successfully:', data);
+    const handleSpectateJoined = (data: any) => {
+      console.log('[SPECTATE] ✅ Joined successfully:', data);
       setConnected(true);
+      setWhiteTime(data.whiteTime || 600000);
+      setBlackTime(data.blackTime || 600000);
+      setSpectatorCount(data.spectatorCount || 0);
       
-      const newGame = new Chess(data.fen);
-      setGame(newGame);
-      setFen(data.fen);
-      setCurrentTurn(newGame.turn());
-      setWhiteTime(data.whiteTime);
-      setBlackTime(data.blackTime);
-      setMoveHistory(data.moveHistory || []);
-      setLastMove(data.lastMove);
-      setSpectatorCount(data.spectatorCount);
-    });
+      // Store move history and rebuild board
+      if (Array.isArray(data.moveHistory)) {
+        setMoveHistory(data.moveHistory);
+        rebuildBoardFromMoves(data.moveHistory);
+      } else {
+        // No moves yet, use starting position
+        setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        setCurrentTurn('w');
+      }
+    };
     
-    socket.on('spectate_error', ({ error }) => {
-      console.error('[SPECTATE] Error:', error);
-      alert(error);
-      onClose();
-    });
-    
-    socket.on('board_state', ({ fen: newFen, lastMove: moveData, whiteTime: wTime, blackTime: bTime, moveHistory: history }) => {
-      console.log('[SPECTATE] Board update received:', {
-        newFen,
-        currentFen: fen,
-        moveData,
-        historyLength: history?.length
+    const handleBoardState = (data: any) => {
+      console.log('[SPECTATE] 🔄 Board update received:', {
+        historyLength: data.moveHistory?.length,
+        lastMove: data.lastMove,
+        fen: data.fen,
+        timestamp: new Date().toISOString()
       });
       
-      // Force update by creating new Chess instance and setting FEN
-      const newGame = new Chess(newFen);
-      setGame(newGame);
-      setFen(newFen);
-      setCurrentTurn(newGame.turn());
-      setLastMove(moveData || null);
-      setWhiteTime(wTime);
-      setBlackTime(bTime);
-      setMoveHistory(history || []);
-    });
-    
-    socket.on('spectator_count_updated', ({ count }) => {
-      setSpectatorCount(count);
-    });
-    
-    socket.on('game_over', ({ winner, reason }) => {
-      let message = '';
-      if (winner === 'draw') {
-        message = `Game drawn by ${reason}`;
-      } else {
-        message = `${winner} won by ${reason}`;
+      setWhiteTime(data.whiteTime || 600000);
+      setBlackTime(data.blackTime || 600000);
+      
+      // Store last move for highlighting
+      if (data.lastMove) {
+        console.log('[SPECTATE] Setting last move:', data.lastMove);
+        setLastMove(data.lastMove);
       }
+      
+      // Update move history and rebuild board from moves
+      if (Array.isArray(data.moveHistory)) {
+        setMoveHistory(data.moveHistory);
+        const success = rebuildBoardFromMoves(data.moveHistory);
+        if (!success) {
+          console.error('[SPECTATE] ❌ Failed to rebuild board, trying FEN fallback');
+          // Fallback to FEN if rebuild fails
+          if (data.fen) {
+            setFen(data.fen);
+            const chess = new Chess(data.fen);
+            setCurrentTurn(chess.turn());
+          }
+        }
+      }
+    };
+    
+    const handleSpectateError = ({ error }: { error: string }) => {
+      console.error('[SPECTATE] ❌ Error:', error);
+      alert(error);
+      onClose();
+    };
+    
+    const handleSpectatorCount = ({ count }: { count: number }) => {
+      console.log('[SPECTATE] 👥 Spectator count:', count);
+      setSpectatorCount(count);
+    };
+    
+    const handleGameOver = ({ winner, reason }: { winner: string; reason: string }) => {
+      console.log('[SPECTATE] 🏁 Game over:', winner, reason);
+      let message = winner === 'draw' ? `Game drawn by ${reason}` : `${winner} won by ${reason}`;
       setGameOver(message);
-    });
+    };
+    
+    socket.on('spectate_joined', handleSpectateJoined);
+    socket.on('spectate_error', handleSpectateError);
+    socket.on('board_state', handleBoardState);
+    socket.on('spectator_count_updated', handleSpectatorCount);
+    socket.on('game_over', handleGameOver);
     
     return () => {
-      console.log('[SPECTATE] Leaving game:', gameId);
+      console.log('[SPECTATE] Unmounting - leaving game:', gameId);
       socket.emit('leave_spectate', { gameId });
-      socket.off('spectate_joined');
-      socket.off('spectate_error');
-      socket.off('board_state');
-      socket.off('spectator_count_updated');
-      socket.off('game_over');
+      socket.off('spectate_joined', handleSpectateJoined);
+      socket.off('spectate_error', handleSpectateError);
+      socket.off('board_state', handleBoardState);
+      socket.off('spectator_count_updated', handleSpectatorCount);
+      socket.off('game_over', handleGameOver);
     };
   }, [gameId, onClose]);
 
@@ -119,10 +195,24 @@ export function SpectatorView({ gameId, whitePlayer, blackPlayer, onClose }: Spe
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Extract display moves from move history
+  const displayMoves = moveHistory.map((m: any) => {
+    if (typeof m === 'string') return m;
+    if (m.san) return m.san;
+    if (m.move && typeof m.move === 'string') return m.move;
+    if (m.move && m.move.san) return m.move.san;
+    // Try to reconstruct move notation
+    if (m.from && m.to) return `${m.from}${m.to}`;
+    if (m.move && m.move.from && m.move.to) return `${m.move.from}${m.move.to}`;
+    return 'Unknown';
+  });
+
   const squareStyles = lastMove ? {
     [lastMove.from]: { background: 'color-mix(in oklab, var(--accent-orange) 26%, transparent)' },
     [lastMove.to]: { background: 'color-mix(in oklab, var(--accent-orange) 34%, transparent)' },
   } : {};
+
+  console.log('[SPECTATE] 🎨 Rendering board with FEN:', fen, '| Move count:', moveHistory.length);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -166,54 +256,68 @@ export function SpectatorView({ gameId, whitePlayer, blackPlayer, onClose }: Spe
               {/* Chessboard */}
               <div className="flex flex-col gap-4">
                 {/* Black Player Card */}
-                <PlayerCard
-                  color="black"
-                  playerName={blackPlayer.name}
-                  elo={blackPlayer.elo}
-                  timeLeft={blackTime}
-                  formatTime={formatTime}
-                  isMyTurn={false}
-                  avatarUrl={null}
-                />
+                <div className={`surface p-4 rounded-lg flex items-center justify-between ${currentTurn === 'b' && !gameOver ? 'ring-2 ring-teal' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-bold">
+                      ♟
+                    </div>
+                    <div>
+                      <div className="font-semibold text-ink">{blackPlayer?.name || 'Black'}</div>
+                      <div className="text-xs text-ink-muted">{blackPlayer?.elo || 1200} ELO</div>
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${currentTurn === 'b' && !gameOver ? 'text-teal' : 'text-ink-muted'}`}>
+                    {formatTime(blackTime)}
+                  </div>
+                </div>
 
                 <div className="rounded-lg overflow-hidden shadow-lg">
                   <Chessboard
-                    key={fen} // Force re-render on FEN change
-                    position={fen}
-                    boardOrientation="white"
-                    arePiecesDraggable={false}
-                    customSquareStyles={squareStyles}
+                    key={`board-${moveHistory.length}-${fen.split(' ')[0]}`}
+                    options={{
+                      position: fen,
+                      boardOrientation: "white",
+                      darkSquareStyle: { backgroundColor: 'var(--board-dark)' },
+                      lightSquareStyle: { backgroundColor: 'var(--board-light)' },
+                      showNotation: true,
+                      squareStyles: squareStyles as never,
+                    }}
                   />
                 </div>
 
                 {/* White Player Card */}
-                <PlayerCard
-                  color="white"
-                  playerName={whitePlayer.name}
-                  elo={whitePlayer.elo}
-                  timeLeft={whiteTime}
-                  formatTime={formatTime}
-                  isMyTurn={false}
-                  avatarUrl={null}
-                />
+                <div className={`surface p-4 rounded-lg flex items-center justify-between ${currentTurn === 'w' && !gameOver ? 'ring-2 ring-teal' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-800 font-bold">
+                      ♙
+                    </div>
+                    <div>
+                      <div className="font-semibold text-ink">{whitePlayer?.name || 'White'}</div>
+                      <div className="text-xs text-ink-muted">{whitePlayer?.elo || 1200} ELO</div>
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${currentTurn === 'w' && !gameOver ? 'text-teal' : 'text-ink-muted'}`}>
+                    {formatTime(whiteTime)}
+                  </div>
+                </div>
               </div>
 
               {/* Move History */}
               <div className="surface p-4 rounded-lg max-h-[600px] overflow-y-auto">
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-faint mb-3">
-                  Move History
+                  Move History ({moveHistory.length} moves)
                 </h3>
-                {moveHistory.length === 0 ? (
+                {displayMoves.length === 0 ? (
                   <p className="text-xs text-ink-faint text-center py-4">No moves yet</p>
                 ) : (
                   <div className="space-y-1">
-                    {moveHistory.map((move, index) => (
+                    {displayMoves.map((move: string, index: number) => (
                       <div
                         key={index}
                         className="flex items-center gap-2 px-2 py-1 rounded text-xs hover:bg-[var(--surface-hover)] transition-colors"
                       >
                         <span className="text-ink-faint font-mono w-8">{Math.floor(index / 2) + 1}.</span>
-                        <span className="text-ink font-semibold">{move.move}</span>
+                        <span className="text-ink font-semibold">{move}</span>
                       </div>
                     ))}
                   </div>
@@ -226,3 +330,5 @@ export function SpectatorView({ gameId, whitePlayer, blackPlayer, onClose }: Spe
     </div>
   );
 }
+
+export const SpectatorView = memo(SpectatorViewComponent);
