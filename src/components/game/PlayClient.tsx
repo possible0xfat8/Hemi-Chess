@@ -1,6 +1,8 @@
 import { getSocket } from '@/lib/socket';
 import { SettlementToast } from '@/components/SettlementToast';
 import { LearnChessModal } from '@/components/LearnChessModal';
+import { OnlineUsers } from '@/components/game/OnlineUsers';
+import { getBackendUrl } from '@/lib/config';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Socket } from 'socket.io-client';
 import { Chessboard } from 'react-chessboard';
@@ -18,6 +20,7 @@ import {
 import { useUserStats, useMatchHistory, DEFAULT_ELO } from '@/hooks/useUserStats';
 import { usePlayerStats } from '@/hooks/useHemiChessElo';
 import { AlertTriangle, Crown, Scale, Flag, Handshake, List, BookOpen } from 'lucide-react';
+import { toast } from 'sonner';
 
 
 type GameState = 'menu' | 'finding' | 'playing' | 'finished';
@@ -739,6 +742,43 @@ export function PlayClient() {
   const walletBadge = address ?? undefined;
   const opponentColor: 'white' | 'black' = orientation === 'white' ? 'black' : 'white';
 
+  // Challenge handler
+  const handleChallenge = async (opponentId: string, opponentName: string) => {
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet to send challenges');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${getBackendUrl()}/api/challenge/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          challengerId: address.toLowerCase(),
+          opponentId: opponentId.toLowerCase(),
+          timeControl: timeControl?.ms ?? 600000,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(`Challenge sent to ${opponentName}`, {
+          description: 'Waiting for opponent to accept...',
+        });
+      } else {
+        toast.error('Failed to send challenge', {
+          description: data.error || 'Please try again',
+        });
+      }
+    } catch (err) {
+      console.error('[Challenge] Error:', err);
+      toast.error('Connection error', {
+        description: 'Unable to send challenge',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-canvas">
       <Navbar />
@@ -836,55 +876,66 @@ export function PlayClient() {
                 )}
               </section>
 
-              <section className="surface p-6 sm:p-8">
-                <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Recent form</h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  {isLoadingHistory ? (
-                    // Loading skeleton
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="h-8 w-8 animate-pulse rounded-lg bg-slate-700/50"
-                      />
-                    ))
-                  ) : matchHistory && matchHistory.length > 0 ? (
-                    // Live match history
-                    matchHistory.map((match, i) => (
-                      <span
-                        key={match.game_id}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold ${
-                          match.outcome === 'W'
-                            ? 'bg-teal/20 text-teal'
-                            : match.outcome === 'L'
-                            ? 'bg-rose-500/20 text-rose-500'
-                            : 'bg-slate-600/50 text-slate-400'
-                        }`}
-                        title={`${match.outcome === 'W' ? 'Win' : match.outcome === 'L' ? 'Loss' : 'Draw'} - ${match.elo_change >= 0 ? '+' : ''}${match.elo_change} Elo`}
-                      >
-                        {match.outcome}
-                      </span>
-                    ))
-                  ) : (
-                    // No games yet
-                    <span className="text-sm text-ink-muted">(last 4 games)</span>
-                  )}
-                </div>
+              {/* Right column: Recent Form + Online Users */}
+              <div className="space-y-4 sm:space-y-6">
+                <section className="surface p-6 sm:p-8">
+                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Recent form</h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isLoadingHistory ? (
+                      // Loading skeleton
+                      Array.from({ length: 4 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="h-8 w-8 animate-pulse rounded-lg bg-slate-700/50"
+                        />
+                      ))
+                    ) : matchHistory && matchHistory.length > 0 ? (
+                      // Live match history
+                      matchHistory.map((match, i) => (
+                        <span
+                          key={match.game_id}
+                          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold ${
+                            match.outcome === 'W'
+                              ? 'bg-teal/20 text-teal'
+                              : match.outcome === 'L'
+                              ? 'bg-rose-500/20 text-rose-500'
+                              : 'bg-slate-600/50 text-slate-400'
+                          }`}
+                          title={`${match.outcome === 'W' ? 'Win' : match.outcome === 'L' ? 'Loss' : 'Draw'} - ${match.elo_change >= 0 ? '+' : ''}${match.elo_change} Elo`}
+                        >
+                          {match.outcome}
+                        </span>
+                      ))
+                    ) : (
+                      // No games yet
+                      <span className="text-sm text-ink-muted">(last 4 games)</span>
+                    )}
+                  </div>
 
-                <div className="mt-6 flex gap-3">
-                  <a
-                    href="/profile"
-                    className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong"
-                  >
-                    View profile
-                  </a>
-                  <a
-                    href="/admin"
-                    className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong"
-                  >
-                    Leaderboard
-                  </a>
-                </div>
-              </section>
+                  <div className="mt-6 flex gap-3">
+                    <a
+                      href="/profile"
+                      className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong"
+                    >
+                      View profile
+                    </a>
+                    <a
+                      href="/admin"
+                      className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong"
+                    >
+                      Leaderboard
+                    </a>
+                  </div>
+                </section>
+
+                {/* Online Users */}
+                {isConnected && address && (
+                  <OnlineUsers 
+                    currentUserId={address.toLowerCase()}
+                    onChallenge={handleChallenge}
+                  />
+                )}
+              </div>
             </div>
           </div>
         )}

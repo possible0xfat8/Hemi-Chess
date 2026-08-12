@@ -1,7 +1,7 @@
 import { createStorage, http } from 'wagmi'
 import { defineChain } from 'viem'
 import { createConfig } from 'wagmi'
-import { injected, walletConnect, coinbaseWallet, metaMask } from 'wagmi/connectors'
+import { injected, coinbaseWallet, walletConnect } from 'wagmi/connectors'
 
 // Define Hemi Testnet (original - mainnet testnet)
 export const hemiTestnet = defineChain({
@@ -82,41 +82,21 @@ const customStorage = createStorage({
   },
 })
 
-// Create wagmi config with improved connectors
+// Create wagmi config with WalletConnect support
 export const config = createConfig({
   chains: [hemiSepolia], // Use hemiSepolia as primary chain
   connectors: [
     injected({ 
       shimDisconnect: true,
-      target() {
-        return {
-          id: 'injected',
-          name: 'Browser Wallet',
-          provider: typeof window !== 'undefined' ? window.ethereum : undefined,
-        }
-      },
     }),
-    metaMask({
-      shimDisconnect: true,
-      dappMetadata: {
-        name: 'HemiChess',
-        url: typeof window !== 'undefined' ? window.location.origin : 'https://hemichess.app',
-      },
-    }),
-    walletConnect({ 
+    walletConnect({
       projectId,
+      showQrModal: true,
       metadata: {
         name: 'HemiChess',
         description: 'Competitive Blockchain Chess on Hemi Network',
-        url: typeof window !== 'undefined' ? window.location.origin : 'https://hemichess.app',
+        url: typeof window !== 'undefined' ? window.location.origin : 'https://hemi-chess.pages.dev/',
         icons: [typeof window !== 'undefined' ? `${window.location.origin}/hemi-chess-logo.png` : 'https://hemichess.app/hemi-chess-logo.png'],
-      },
-      showQrModal: true,
-      qrModalOptions: {
-        themeMode: 'dark',
-        themeVariables: {
-          '--wcm-z-index': '9999',
-        },
       },
     }),
     coinbaseWallet({
