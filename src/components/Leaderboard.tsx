@@ -16,6 +16,7 @@ interface LeaderboardEntry {
   losses: number;
   draws: number;
   win_rate: number;
+  online?: boolean;
 }
 
 export function Leaderboard() {
@@ -148,6 +149,8 @@ export function Leaderboard() {
                       alt={entry.username}
                       size="md"
                       fallbackText={entry.username}
+                      showOnline={true}
+                      isOnline={entry.online ?? false}
                     />
                     <div className="min-w-0">
                       <div className="font-semibold text-ink truncate">{entry.username}</div>
@@ -208,6 +211,8 @@ export function Leaderboard() {
                 alt={entry.username}
                 size="sm"
                 fallbackText={entry.username}
+                showOnline={true}
+                isOnline={entry.online ?? false}
               />
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-ink truncate leading-tight">{entry.username}</div>

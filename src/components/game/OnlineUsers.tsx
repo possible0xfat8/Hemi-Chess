@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getBackendUrl } from '@/lib/config';
 import { Users, Swords, Trophy, Loader2 } from 'lucide-react';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar } from '@/components/Avatar';
+import { ClickableUsername } from '@/components/ClickableUsername';
 
 interface OnlineUser {
   player_id: string;
@@ -115,19 +116,24 @@ export function OnlineUsers({ currentUserId, onChallenge }: OnlineUsersProps) {
               key={user.player_id}
               className="flex items-center gap-3 p-3 rounded-lg bg-[var(--surface-strong)] hover:bg-[var(--surface-hover)] transition-colors"
             >
-              {/* Avatar */}
+              {/* Avatar with online indicator */}
               <Avatar
                 src={user.avatar_url}
-                address={user.wallet_address}
+                alt={user.username}
                 size="md"
+                fallbackText={user.username}
                 className="shrink-0"
+                showOnline={true}
+                isOnline={true}
               />
 
               {/* User Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink truncate">
-                  {user.username}
-                </p>
+                <ClickableUsername 
+                  username={user.username}
+                  walletAddress={user.wallet_address}
+                  className="text-sm font-semibold text-ink truncate block"
+                />
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className="flex items-center gap-1">
                     <Trophy className="w-3 h-3 text-amber-400" />

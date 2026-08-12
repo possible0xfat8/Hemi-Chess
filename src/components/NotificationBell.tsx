@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { getBackendUrl } from '@/lib/config';
 import { getSocket } from '@/lib/socket';
 import { formatDistanceToNow } from 'date-fns';
+import { ClickableUsername } from '@/components/ClickableUsername';
 
 export function NotificationBell() {
   const { notifications, unreadCount, markAsRead, updateStatus, deleteNotification } = useNotifications();
@@ -108,13 +109,28 @@ export function NotificationBell() {
   };
 
   const getNotificationMessage = (notification: typeof notifications[0]) => {
+    const username = notification.sender_username || 'Someone';
+    const wallet = notification.sender_id;
+    
     switch (notification.type) {
       case 'friend_request':
-        return `${notification.sender_username || 'Someone'} sent you a friend request`;
+        return (
+          <>
+            <ClickableUsername username={username} walletAddress={wallet} className="font-semibold" /> sent you a friend request
+          </>
+        );
       case 'match_challenge':
-        return `${notification.sender_username || 'Someone'} challenged you to a match`;
+        return (
+          <>
+            <ClickableUsername username={username} walletAddress={wallet} className="font-semibold" /> challenged you to a match
+          </>
+        );
       case 'friend_accepted':
-        return `${notification.sender_username || 'Someone'} accepted your friend request`;
+        return (
+          <>
+            <ClickableUsername username={username} walletAddress={wallet} className="font-semibold" /> accepted your friend request
+          </>
+        );
       default:
         return 'New notification';
     }

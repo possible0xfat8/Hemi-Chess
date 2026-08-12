@@ -4,6 +4,7 @@ import { getBackendUrl } from '@/lib/config';
 import { Users, Swords, UserMinus, Search, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '@/components/Avatar';
+import { ClickableUsername } from '@/components/ClickableUsername';
 
 interface Friend {
   friendship_id: number;
@@ -17,6 +18,7 @@ interface Friend {
   last_active: string;
   friendship_since: string;
   status: string;
+  online?: boolean;
 }
 
 interface SearchResult {
@@ -27,6 +29,7 @@ interface SearchResult {
   wallet_address: string;
   total_games: number;
   wins: number;
+  online?: boolean;
 }
 
 export function FriendsList() {
@@ -263,18 +266,24 @@ export function FriendsList() {
                   key={friend.friendship_id}
                   className="flex items-center gap-3 p-3 bg-[var(--surface-strong)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
                 >
-                  {/* Avatar */}
+                  {/* Avatar with online indicator */}
                   <Avatar
                     src={friend.avatar_url}
                     alt={friend.username}
                     size="md"
                     fallbackText={friend.username}
                     className="bg-gradient-to-br from-orange to-amber-600"
+                    showOnline={true}
+                    isOnline={friend.online ?? false}
                   />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-ink truncate">{friend.username}</div>
+                    <ClickableUsername
+                      username={friend.username}
+                      walletAddress={friend.wallet_address}
+                      className="font-semibold text-ink truncate block"
+                    />
                     <div className="flex items-center gap-2 text-xs text-ink-muted">
                       <span>{friend.elo_rating} ELO</span>
                       <span>•</span>
@@ -345,18 +354,24 @@ export function FriendsList() {
                     key={player.player_id}
                     className="flex items-center gap-3 p-3 bg-[var(--surface-strong)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
                   >
-                    {/* Avatar */}
+                    {/* Avatar with online indicator */}
                     <Avatar
                       src={player.avatar_url}
                       alt={player.username}
                       size="md"
                       fallbackText={player.username}
                       className="bg-gradient-to-br from-teal to-blue-600"
+                      showOnline={true}
+                      isOnline={player.online ?? false}
                     />
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-ink truncate">{player.username}</div>
+                      <ClickableUsername
+                        username={player.username}
+                        walletAddress={player.wallet_address}
+                        className="font-semibold text-ink truncate block"
+                      />
                       <div className="flex items-center gap-2 text-xs text-ink-muted">
                         <span>{player.elo_rating} ELO</span>
                         <span>•</span>

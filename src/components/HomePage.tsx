@@ -19,6 +19,7 @@ import { getBackendUrl } from '@/lib/config'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
 import { Avatar } from '@/components/Avatar'
+import { ClickableUsername } from '@/components/ClickableUsername'
 import heroChess from '@/assets/hero-chess.jpg'
 
 interface UserStats {
@@ -35,6 +36,7 @@ interface ActiveGame {
   opponent_name: string
   opponent_elo: number
   opponent_avatar?: string
+  opponent_wallet?: string
   your_turn: boolean
   time_remaining: number
 }
@@ -317,7 +319,15 @@ export function HomePage() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-ink">{game.opponent_name}</p>
+                      {game.opponent_wallet ? (
+                        <ClickableUsername 
+                          username={game.opponent_name} 
+                          walletAddress={game.opponent_wallet}
+                          className="truncate text-sm font-bold text-ink block"
+                        />
+                      ) : (
+                        <p className="truncate text-sm font-bold text-ink">{game.opponent_name}</p>
+                      )}
                       <p className="text-xs font-semibold text-orange">{game.opponent_elo}</p>
                     </div>
                   </div>

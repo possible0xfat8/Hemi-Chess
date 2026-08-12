@@ -205,13 +205,15 @@ export function ProfileClient() {
         {/* Profile Header */}
         <div className="surface p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-            {/* Avatar */}
+            {/* Avatar with online indicator */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
               <Avatar
                 src={avatarUrl}
                 alt={displayName}
                 size="xl"
                 fallbackText={displayName}
+                showOnline={true}
+                isOnline={true}
               />
               <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 bg-teal rounded-full border-4 border-[var(--canvas)] flex items-center justify-center">
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-canvas" fill="currentColor" viewBox="0 0 20 20">

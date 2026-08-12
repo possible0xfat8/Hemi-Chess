@@ -38,13 +38,15 @@ export function ProfileCard({ isActive }: ProfileCardProps) {
             }
           `}
         >
-          {/* Avatar */}
+          {/* Avatar with online indicator */}
           <div className="relative shrink-0">
             <Avatar
               src={userStats?.avatar_url}
               alt={username}
               size="md"
               fallbackText={username}
+              showOnline={true}
+              isOnline={true}
             />
           </div>
 
@@ -87,13 +89,15 @@ export function ProfileCard({ isActive }: ProfileCardProps) {
             }
           `}
         >
-          {/* Avatar */}
+          {/* Avatar with online indicator */}
           <div className="relative shrink-0">
             <Avatar
               src={userStats?.avatar_url}
               alt={username}
               size="sm"
               fallbackText={username}
+              showOnline={true}
+              isOnline={true}
             />
           </div>
 
