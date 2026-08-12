@@ -1154,79 +1154,124 @@ export function PlayClient() {
           const isLoss = !isWin && !isDraw;
 
           return (
-            <div className="surface-modal mx-auto max-w-lg p-4 sm:p-6 md:p-8 text-center">
-              {/* Victory */}
-              {isWin && (
-                <>
-                  <div className="relative mx-auto mb-4 sm:mb-6 h-20 w-20 sm:h-24 sm:w-24">
-                    {/* Celebration particles */}
-                    <div className="absolute inset-0 animate-ping rounded-full bg-teal opacity-20"></div>
-                    <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-tr from-teal to-blue opacity-30"></div>
-                    
-                    {/* Crown icon */}
-                    <div className="relative grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-teal to-blue">
-                      <Crown className="h-10 w-10 text-canvas" />
-                    </div>
-                    
-
+            <div className="mx-auto max-w-6xl">
+              {/* Two-column layout: Board + Result */}
+              <div className="grid gap-4 lg:grid-cols-[1fr_480px]">
+                
+                {/* Left: Final Board Position */}
+                <div className="surface p-4 sm:p-6">
+                  <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">
+                    Final Position
+                  </h3>
+                  <div className="mx-auto" style={{ maxWidth: '500px' }}>
+                    <Chessboard
+                      position={fen}
+                      boardOrientation={orientation || 'white'}
+                      customSquareStyles={squareStyles}
+                      arePiecesDraggable={false}
+                      customBoardStyle={{
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                      }}
+                    />
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-teal">Victory!</h2>
-                </>
-              )}
-
-              {/* Draw */}
-              {isDraw && (
-                <>
-                  <div className="relative mx-auto mb-4 sm:mb-6 h-20 w-20 sm:h-24 sm:w-24">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue to-slate-600 opacity-20"></div>
-                    <div className="relative grid h-full w-full place-items-center rounded-full bg-[var(--surface-strong)] ring-1 ring-line-strong">
-                      <Scale className="h-9 w-9 text-ink-muted" />
-                    </div>
+                  
+                  {/* Move count below board */}
+                  <div className="mt-4 text-center">
+                    <p className="text-xs text-ink-faint">
+                      Game ended after {moveHistory.length} moves
+                    </p>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-300">Draw</h2>
-                </>
-              )}
-
-              {/* Loss */}
-              {isLoss && (
-                <>
-                  <div className="relative mx-auto mb-4 sm:mb-6 h-20 w-20 sm:h-24 sm:w-24">
-                    <div className="absolute inset-0 animate-pulse rounded-full bg-danger-accent opacity-20"></div>
-                    
-                    {/* Fallen king - rotated */}
-                    <div className="relative grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-danger-accent/80 to-danger-accent">
-                      <Flag className="h-9 w-9 text-canvas" />
-                    </div>
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-danger-accent">Defeat</h2>
-                </>
-              )}
-
-              <p className="mt-2 text-base sm:text-lg text-ink-muted">{gameOverMsg}</p>
-
-              <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-2 sm:gap-3">
-                <div className="surface-inset p-3 sm:p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-ink-faint">Moves</p>
-                  <p className="mt-1 text-base sm:text-lg font-bold text-ink">{moveHistory.length}</p>
                 </div>
-                <div className="surface-inset p-3 sm:p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-ink-faint">Time control</p>
-                  <p className="mt-1 text-base sm:text-lg font-bold text-ink">{timeControl?.label}</p>
+
+                {/* Right: Game Result & Actions */}
+                <div className="surface-modal p-4 sm:p-6 md:p-8 text-center">
+                  {/* Victory */}
+                  {isWin && (
+                    <>
+                      <div className="relative mx-auto mb-4 sm:mb-6 h-20 w-20 sm:h-24 sm:w-24">
+                        {/* Celebration particles */}
+                        <div className="absolute inset-0 animate-ping rounded-full bg-teal opacity-20"></div>
+                        <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-tr from-teal to-blue opacity-30"></div>
+                        
+                        {/* Crown icon */}
+                        <div className="relative grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-teal to-blue">
+                          <Crown className="h-10 w-10 text-canvas" />
+                        </div>
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-teal">Victory!</h2>
+                    </>
+                  )}
+
+                  {/* Draw */}
+                  {isDraw && (
+                    <>
+                      <div className="relative mx-auto mb-4 sm:mb-6 h-20 w-20 sm:h-24 sm:w-24">
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue to-slate-600 opacity-20"></div>
+                        <div className="relative grid h-full w-full place-items-center rounded-full bg-[var(--surface-strong)] ring-1 ring-line-strong">
+                          <Scale className="h-9 w-9 text-ink-muted" />
+                        </div>
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-300">Draw</h2>
+                    </>
+                  )}
+
+                  {/* Loss */}
+                  {isLoss && (
+                    <>
+                      <div className="relative mx-auto mb-4 sm:mb-6 h-20 w-20 sm:h-24 sm:w-24">
+                        <div className="absolute inset-0 animate-pulse rounded-full bg-danger-accent opacity-20"></div>
+                        
+                        {/* Fallen king - rotated */}
+                        <div className="relative grid h-full w-full place-items-center rounded-full bg-gradient-to-br from-danger-accent/80 to-danger-accent">
+                          <Flag className="h-9 w-9 text-canvas" />
+                        </div>
+                      </div>
+                      <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-danger-accent">Defeat</h2>
+                    </>
+                  )}
+
+                  <p className="mt-2 text-base sm:text-lg text-ink-muted">{gameOverMsg}</p>
+
+                  {/* Game Stats */}
+                  <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="surface-inset p-3 sm:p-4">
+                      <p className="text-[11px] uppercase tracking-wide text-ink-faint">Moves</p>
+                      <p className="mt-1 text-base sm:text-lg font-bold text-ink">{moveHistory.length}</p>
+                    </div>
+                    <div className="surface-inset p-3 sm:p-4">
+                      <p className="text-[11px] uppercase tracking-wide text-ink-faint">Time control</p>
+                      <p className="mt-1 text-base sm:text-lg font-bold text-ink">{timeControl?.label}</p>
+                    </div>
+                  </div>
+
+                  {/* Player Info */}
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="surface-inset p-3 sm:p-4">
+                      <p className="text-[11px] uppercase tracking-wide text-ink-faint">You</p>
+                      <p className="mt-1 text-sm sm:text-base font-bold text-ink">{myGameElo} ELO</p>
+                    </div>
+                    <div className="surface-inset p-3 sm:p-4">
+                      <p className="text-[11px] uppercase tracking-wide text-ink-faint">Opponent</p>
+                      <p className="mt-1 text-sm sm:text-base font-bold text-ink">{opponentElo} ELO</p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <button
+                    onClick={handlePlayAgain}
+                    className="mt-6 w-full rounded-xl bg-orange px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-extrabold text-canvas transition-transform hover:-translate-y-0.5"
+                  >
+                    Play again
+                  </button>
+                  <a
+                    href="/profile"
+                    className="mt-3 block w-full rounded-xl border border-line bg-[var(--surface-strong)] px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-ink hover:bg-[var(--surface-hover)] transition-colors"
+                  >
+                    View profile
+                  </a>
                 </div>
               </div>
-
-              <button
-                onClick={handlePlayAgain}
-                className="mt-4 sm:mt-6 w-full rounded-xl bg-orange px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-extrabold text-canvas transition-transform hover:-translate-y-0.5"
-              >
-                Play again
-              </button>
-              <a
-                href="/profile"
-                className="mt-3 block w-full rounded-xl border border-line bg-[var(--surface-strong)] px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-ink"
-              >
-                View profile
-              </a>
             </div>
           );
         })()}

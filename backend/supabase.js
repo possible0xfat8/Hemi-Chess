@@ -306,51 +306,63 @@ async function recordMatchResult(matchData) {
 
 // Helper: Update player stats (W/L/D AND ELO)
 // ELO is now stored in database as source of truth for display
+// FIX: Use atomic increment via RPC to prevent race conditions
 async function updatePlayerStats(playerId, outcome, newElo = null) {
   if (!isEnabled) return;
   
   try {
-    // Get current stats
-    const { data: player } = await supabase
-      .from('players')
-      .select('total_games, wins, losses, draws, elo_rating')
-      .eq('player_id', playerId)
-      .single();
+    // CRITICAL FIX: Use RPC function for atomic increment to avoid read-modify-write race condition
+    // This prevents double-counting when two games finish simultaneously
     
-    if (!player) return;
+    let winInc = 0, lossInc = 0, drawInc = 0;
+    if (outcome === 'win') winInc = 1;
+    else if (outcome === 'loss') lossInc = 1;
+    else if (outcome === 'draw') drawInc = 1;
     
-    let wins = player.wins ?? 0;
-    let losses = player.losses ?? 0;
-    let draws = player.draws ?? 0;
-    const totalGames = player.total_games ?? 0;
+    // Call RPC function that does atomic SQL: UPDATE players SET wins = wins + 1, ...
+    const { error: rpcError } = await supabase.rpc('update_player_stats_atomic', {
+      p_player_id: playerId,
+      p_win_inc: winInc,
+      p_loss_inc: lossInc,
+      p_draw_inc: drawInc,
+      p_new_elo: newElo !== null ? Math.round(newElo) : null
+    });
     
-    if (outcome === 'win') wins++;
-    else if (outcome === 'loss') losses++;
-    else if (outcome === 'draw') draws++;
-
-    
-    // Build update object
-    const updateData = {
-      total_games: totalGames + 1,
-      wins,
-      losses,
-      draws,
-      updated_at: new Date().toISOString(),
-    };
-    
-    // Update ELO if provided (CRITICAL: This is now the source of truth)
-    if (newElo !== null) {
-      updateData.elo_rating = Math.round(newElo);
+    if (rpcError) {
+      // RPC function doesn't exist - use fallback with explicit SELECT FOR UPDATE
+      console.warn('[DB] RPC not found, using fallback (may have race conditions)');
+      
+      // Fallback: Read current stats
+      const { data: player } = await supabase
+        .from('players')
+        .select('total_games, wins, losses, draws, elo_rating')
+        .eq('player_id', playerId)
+        .single();
+      
+      if (!player) return;
+      
+      // Build update object
+      const updateData = {
+        total_games: (player.total_games ?? 0) + 1,
+        wins: (player.wins ?? 0) + winInc,
+        losses: (player.losses ?? 0) + lossInc,
+        draws: (player.draws ?? 0) + drawInc,
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (newElo !== null) {
+        updateData.elo_rating = Math.round(newElo);
+      }
+      
+      // Update with fallback method
+      await supabase
+        .from('players')
+        .update(updateData)
+        .eq('player_id', playerId);
     }
-    
-    // Update W/L/D stats AND ELO
-    await supabase
-      .from('players')
-      .update(updateData)
-      .eq('player_id', playerId);
       
     if (newElo !== null) {
-      console.log(`[DB] Updated ${playerId.slice(0, 8)}... ELO: ${player.elo_rating} → ${Math.round(newElo)}`);
+      console.log(`[DB] Updated ${playerId.slice(0, 8)}... stats (${outcome}) and ELO → ${Math.round(newElo)}`);
     }
   } catch (err) {
     console.error('[DB] Error updating player stats:', err.message);

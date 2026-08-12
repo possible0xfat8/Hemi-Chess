@@ -1017,6 +1017,63 @@ app.delete('/api/notifications/:notificationId', async (req, res) => {
   }
 });
 
+// Get online users (for challenges)
+app.get('/api/users/online', async (req, res) => {
+  try {
+    const { excludeUserId } = req.query;
+    
+    // Get all online players from playerSockets map
+    const onlinePlayers = Array.from(playerSockets.values())
+      .filter((data, index, self) => {
+        // Deduplicate by playerId (same player can have multiple sockets)
+        return self.findIndex(d => d.playerId === data.playerId) === index;
+      })
+      .filter(data => {
+        // Exclude the requesting user
+        return !excludeUserId || data.playerId !== excludeUserId.toLowerCase();
+      })
+      .map(data => ({
+        player_id: data.playerId,
+        username: data.playerName || `${data.playerId.slice(0, 6)}...${data.playerId.slice(-4)}`,
+        wallet_address: data.playerId,
+        online: true,
+      }));
+    
+    // If database is enabled, enrich with ELO ratings
+    if (dbEnabled && onlinePlayers.length > 0) {
+      try {
+        const enrichedPlayers = await Promise.all(
+          onlinePlayers.map(async (player) => {
+            const stats = await db.getUserStatsByWallet(player.wallet_address);
+            return {
+              ...player,
+              elo_rating: stats?.elo_rating || 1200,
+              total_games: stats?.total_games || 0,
+              wins: stats?.wins || 0,
+              losses: stats?.losses || 0,
+              avatar_url: stats?.avatar_url || null,
+            };
+          })
+        );
+        
+        // Sort by ELO rating descending
+        enrichedPlayers.sort((a, b) => b.elo_rating - a.elo_rating);
+        
+        res.json({ success: true, players: enrichedPlayers, count: enrichedPlayers.length });
+      } catch (err) {
+        console.error('[API] Error enriching online users:', err);
+        // Return basic list without enrichment
+        res.json({ success: true, players: onlinePlayers, count: onlinePlayers.length });
+      }
+    } else {
+      res.json({ success: true, players: onlinePlayers, count: onlinePlayers.length });
+    }
+  } catch (err) {
+    console.error('[API] Error getting online users:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Send match challenge
 app.post('/api/challenge/send', async (req, res) => {
   if (!dbEnabled) {

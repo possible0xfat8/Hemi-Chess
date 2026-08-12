@@ -1,7 +1,7 @@
 import { createStorage, http } from 'wagmi'
 import { defineChain } from 'viem'
 import { createConfig } from 'wagmi'
-import { injected, walletConnect } from 'wagmi/connectors'
+import { injected, walletConnect, coinbaseWallet, metaMask } from 'wagmi/connectors'
 
 // Define Hemi Testnet (original - mainnet testnet)
 export const hemiTestnet = defineChain({
@@ -53,7 +53,12 @@ export const hemiSepolia = defineChain({
 })
 
 // Get project ID from environment
-const projectId = import.meta.env['VITE_WALLET_CONNECT_PROJECT_ID'] as string | undefined || 'demo-project-id'
+const projectId = import.meta.env['VITE_WALLET_CONNECT_PROJECT_ID'] as string | undefined || 'd6959547a237d3b9ed9ca8e17468aa48'
+
+// Validate project ID
+if (!projectId || projectId === 'demo-project-id') {
+  console.warn('[Wagmi Config] Using fallback WalletConnect project ID. Please set VITE_WALLET_CONNECT_PROJECT_ID in .env.local')
+}
 
 // Create custom storage that we can control
 const customStorage = createStorage({
@@ -77,26 +82,53 @@ const customStorage = createStorage({
   },
 })
 
-// Create wagmi config
+// Create wagmi config with improved connectors
 export const config = createConfig({
   chains: [hemiSepolia], // Use hemiSepolia as primary chain
   connectors: [
-    injected({ shimDisconnect: true }),
+    injected({ 
+      shimDisconnect: true,
+      target() {
+        return {
+          id: 'injected',
+          name: 'Browser Wallet',
+          provider: typeof window !== 'undefined' ? window.ethereum : undefined,
+        }
+      },
+    }),
+    metaMask({
+      shimDisconnect: true,
+      dappMetadata: {
+        name: 'HemiChess',
+        url: typeof window !== 'undefined' ? window.location.origin : 'https://hemichess.app',
+      },
+    }),
     walletConnect({ 
       projectId,
       metadata: {
         name: 'HemiChess',
-        description: 'Decentralized Chess on Hemi Network',
-        url: 'https://hemichess.com',
-        icons: ['https://hemichess.com/icon.png']
+        description: 'Competitive Blockchain Chess on Hemi Network',
+        url: typeof window !== 'undefined' ? window.location.origin : 'https://hemichess.app',
+        icons: [typeof window !== 'undefined' ? `${window.location.origin}/hemi-chess-logo.png` : 'https://hemichess.app/hemi-chess-logo.png'],
       },
       showQrModal: true,
+      qrModalOptions: {
+        themeMode: 'dark',
+        themeVariables: {
+          '--wcm-z-index': '9999',
+        },
+      },
+    }),
+    coinbaseWallet({
+      appName: 'HemiChess',
+      appLogoUrl: typeof window !== 'undefined' ? `${window.location.origin}/hemi-chess-logo.png` : 'https://hemichess.app/hemi-chess-logo.png',
     }),
   ],
   transports: {
-    [hemiSepolia.id]: http(),
+    [hemiSepolia.id]: http('https://testnet.rpc.hemi.network/rpc'),
   },
   ssr: true,
   storage: customStorage,
   multiInjectedProviderDiscovery: true,
 })
+
