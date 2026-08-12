@@ -3,6 +3,7 @@ import { ConnectWallet } from './ConnectWallet'
 import { ServerStatus } from './ServerStatus'
 import { NotificationBell } from './NotificationBell'
 import { ProfileCard } from './ProfileCard'
+import { OnlineUserCount } from './OnlineUserCount'
 import { useAccount } from 'wagmi'
 import { Gamepad2, Shield, Trophy, Users } from 'lucide-react'
 
@@ -39,6 +40,11 @@ export function Navbar() {
           </Link>
 
           <ServerStatus />
+          
+          {/* Online User Count - Desktop Only */}
+          <div className="hidden lg:block">
+            <OnlineUserCount size="sm" />
+          </div>
         </div>
 
         {/* Center Navigation - Desktop Only */}

@@ -1,127 +1,368 @@
-# Online Status & Clickable Username Updates
+# Online Status Updates
 
-## Overview
-Added online status indicators to user avatars across the application and made all username mentions clickable to navigate to user profiles.
-
-## New Components
-
-### 1. **ClickableUsername Component** (`src/components/ClickableUsername.tsx`)
-- Reusable component that makes usernames clickable
-- Navigates to `/user/$address` when clicked
-- Shows hover effect for better UX
-- Props:
-  - `username`: Display name
-  - `walletAddress`: For navigation
-  - `className`: Optional styling
-  - `children`: Optional custom content
-
-### 2. **Enhanced Avatar Component** (`src/components/Avatar.tsx`)
-- Added online status indicator support
-- New props:
-  - `showOnline`: Boolean to enable/disable online indicator
-  - `isOnline`: Boolean to show online (green pulsing) or offline (gray)
-- Online indicator sizes adapt to avatar size (xs, sm, md, lg, xl)
-- Positioned at bottom-right with ring border for visibility
-
-## Updated Components
-
-### 1. **FriendsList** (`src/components/FriendsList.tsx`)
-- ✅ Added online indicators to friend avatars
-- ✅ Added online indicators to search results
-- ✅ Made usernames clickable in both friends list and search results
-- ✅ Updated interfaces to include `online?: boolean` field
-
-### 2. **NotificationBell** (`src/components/NotificationBell.tsx`)
-- ✅ Made sender usernames clickable in all notification types:
-  - Friend requests
-  - Match challenges
-  - Friend accepted notifications
-- Usernames now navigate to sender's profile when clicked
-
-### 3. **HomePage** (`src/components/HomePage.tsx`)
-- ✅ Made opponent names clickable in active games section
-- ✅ Added optional wallet address to ActiveGame interface
-- Conditionally renders clickable username if wallet address is available
-
-### 4. **OnlineUsers** (`src/components/game/OnlineUsers.tsx`)
-- ✅ Added online indicators to all online user avatars (always green/pulsing)
-- ✅ Made usernames clickable to navigate to user profiles
-- Fixed import to use correct Avatar component
-
-### 5. **UserProfileClient** (`src/components/game/UserProfileClient.tsx`)
-- ✅ Added online status checking via `/api/users/online` endpoint
-- ✅ Shows online indicator on profile avatar
-- ✅ Checks online status on component mount
-
-### 6. **ProfileClient** (`src/components/game/ProfileClient.tsx`)
-- ✅ Added online indicator to user's own profile avatar
-- Shows as always online (isOnline={true}) for own profile
-
-### 7. **Leaderboard** (`src/components/Leaderboard.tsx`)
-- ✅ Added online indicators to avatars in both desktop table and mobile card views
-- ✅ Updated LeaderboardEntry interface to include `online?: boolean`
-- Already had clickable rows - no changes needed
-
-### 8. **ProfileCard** (`src/components/ProfileCard.tsx`)
-- ✅ Added online indicator to navbar profile card (both desktop and mobile)
-- Shows as always online for logged-in user
+Real-time online status tracking for HemiChess players with WebSocket integration.
 
 ## Features
 
-### Online Status Indicators
-- **Visual Design**: Small circular indicator at bottom-right of avatar
-- **Online State**: Teal/green color with pulsing animation
-- **Offline State**: Gray/muted color, no animation
-- **Sizes**: Automatically scales with avatar size (1.5px to 5px diameter)
-- **Ring Border**: White/canvas-colored ring for contrast
+### ✅ Implemented
 
-### Clickable Usernames
-- **Hover Effect**: Color changes to orange on hover
-- **Navigation**: Routes to `/user/$address` profile page
-- **Accessibility**: Includes title attribute with "View {username}'s profile"
-- **Consistent**: Works across all components (friends, notifications, leaderboard, etc.)
+1. **Real-time Status Updates via WebSocket**
+   - Automatic status broadcasts when users connect/disconnect
+   - Instant updates across all connected clients
+   - No polling required - truly real-time
 
-## Implementation Details
+2. **"Last Seen" Timestamp**
+   - Displays when offline users were last active
+   - Format: "Last seen 5 minutes ago"
+   - Stored in database and updated on disconnect
 
-### Online Status Data Flow
-1. Backend `/api/users/online` endpoint returns list of online players
-2. Components either:
-   - Fetch online users directly (OnlineUsers, UserProfileClient)
-   - Receive online status from API responses (FriendsList, Leaderboard)
-3. Avatar component shows indicator based on `isOnline` prop
+3. **Online Status Toggle ("Appear Offline" Feature)**
+   - Users can control their visibility
+   - Options: Online, Appear Offline
+   - Preference stored in database
+   - Respects privacy while maintaining connection
 
-### Navigation Pattern
-- Uses `useNavigate` from `@tanstack/react-router`
-- Consistent route: `/user/$address` where address is wallet address
-- Prevents event bubbling with `e.stopPropagation()`
+4. **Online User Count in UI**
+   - Live counter in navigation bar
+   - Updates automatically via WebSocket
+   - Shows total active players
 
-## Files Modified
-1. `src/components/Avatar.tsx` - Added online indicator
-2. `src/components/ClickableUsername.tsx` - NEW component
-3. `src/components/FriendsList.tsx` - Online indicators + clickable usernames
-4. `src/components/NotificationBell.tsx` - Clickable sender usernames
-5. `src/components/HomePage.tsx` - Clickable opponent names
-6. `src/components/game/OnlineUsers.tsx` - Online indicators + clickable usernames
-7. `src/components/game/UserProfileClient.tsx` - Online status on profile
-8. `src/components/game/ProfileClient.tsx` - Online status on own profile
-9. `src/components/Leaderboard.tsx` - Online indicators in table/cards
-10. `src/components/ProfileCard.tsx` - Online indicator in navbar
+5. **Enhanced UI Components**
+   - Green pulse indicator for online users
+   - Gray indicator for offline users
+   - Last seen timestamp display
+   - Smooth transitions and animations
 
-## Testing Checklist
-- [ ] Avatar online indicators visible at all sizes
-- [ ] Online indicator animates (pulsing) when user is online
-- [ ] Clicking usernames navigates to correct profile page
-- [ ] Hover effects work on clickable usernames
-- [ ] Online status updates in real-time (or on refresh)
-- [ ] Profile pages show correct online status
-- [ ] Navbar profile card shows online indicator
-- [ ] Friends list shows online/offline status correctly
-- [ ] Notifications have clickable sender names
-- [ ] Leaderboard shows online indicators (both desktop/mobile)
-- [ ] Active games show clickable opponent names (when wallet available)
+## Architecture
+
+### Database Schema
+
+```sql
+-- New columns added to players table
+ALTER TABLE players 
+ADD COLUMN last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN online_status VARCHAR(20) DEFAULT 'online',
+ADD COLUMN is_online BOOLEAN DEFAULT FALSE;
+
+-- Indexes for performance
+CREATE INDEX idx_players_online ON players(is_online, online_status);
+CREATE INDEX idx_players_last_seen ON players(last_seen DESC);
+```
+
+**Fields:**
+- `last_seen`: Last time user was seen online (for "Last seen" display)
+- `online_status`: User preference ('online', 'offline', 'appear_offline')
+- `is_online`: Actual online state based on socket connection
+
+### Backend Components
+
+#### 1. Supabase Functions (`backend/supabase.js`)
+
+```javascript
+// Set user online/offline
+setUserOnlineStatus(walletAddress, isOnline)
+
+// Set status preference
+setUserStatusPreference(walletAddress, statusPreference)
+
+// Get user status
+getUserOnlineStatus(walletAddress)
+
+// Get online users (respects appear_offline)
+getOnlineUsers(limit)
+
+// Update last seen (heartbeat)
+updateLastSeen(walletAddress)
+```
+
+#### 2. WebSocket Events (`backend/server.js`)
+
+**Server → Client:**
+- `user_status_changed` - Broadcast when user connects/disconnects
+- `user_status_preference_changed` - Broadcast when preference changes
+
+**Client → Server:**
+- `register_player` - Register as online (auto-updates database)
+
+#### 3. API Endpoints
+
+```
+POST /api/user/status
+Body: { walletAddress, statusPreference }
+Updates user's status preference
+
+GET /api/user/:walletAddress/status
+Returns: { is_online, last_seen, online_status }
+
+POST /api/user/heartbeat
+Body: { walletAddress }
+Updates last_seen timestamp
+```
+
+### Frontend Components
+
+#### 1. Custom Hooks
+
+**`useOnlineStatus(walletAddresses[])`**
+- Track real-time status of multiple users
+- Auto-subscribes to WebSocket updates
+- Returns: `{ isUserOnline(), getLastSeen(), loading, refetch() }`
+
+**`useMyOnlineStatus()`**
+- Manage current user's status preference
+- Returns: `{ statusPreference, setStatusPreference(), updating }`
+
+**`useOnlineCount()`**
+- Track total online users
+- Auto-updates via WebSocket
+- Returns: `{ count, loading, refetch() }`
+
+#### 2. UI Components
+
+**`<OnlineStatusToggle />`**
+- Dropdown menu to change status preference
+- Shows current status with icon
+- Updates instantly
+
+**`<OnlineUserCount />`**
+- Displays total online players
+- Configurable size and icon
+- Auto-refreshing
+
+**`<Avatar showOnline={true} isOnline={bool} />`**
+- Enhanced avatar with online indicator
+- Green pulse for online
+- Gray for offline
+
+#### 3. Updated Components
+
+**`<FriendsList />`**
+- Shows real-time online status
+- Displays "Last seen" for offline friends
+- Green indicators for online friends
+
+**`<Navbar />`**
+- Online user count in header
+- Status toggle button
+- Responsive design
+
+## Usage Examples
+
+### Track Friend Status
+
+```tsx
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+
+function FriendsList({ friends }) {
+  const wallets = friends.map(f => f.wallet_address);
+  const { isUserOnline, getLastSeen } = useOnlineStatus(wallets);
+  
+  return friends.map(friend => (
+    <div>
+      <Avatar 
+        showOnline={true} 
+        isOnline={isUserOnline(friend.wallet_address)} 
+      />
+      {!isUserOnline(friend.wallet_address) && (
+        <span>Last seen {formatDistanceToNow(getLastSeen(friend.wallet_address))}</span>
+      )}
+    </div>
+  ));
+}
+```
+
+### Change Status Preference
+
+```tsx
+import { useMyOnlineStatus } from '@/hooks/useOnlineStatus';
+
+function StatusSettings() {
+  const { statusPreference, setStatusPreference } = useMyOnlineStatus();
+  
+  return (
+    <select 
+      value={statusPreference} 
+      onChange={e => setStatusPreference(e.target.value)}
+    >
+      <option value="online">Online</option>
+      <option value="appear_offline">Appear Offline</option>
+    </select>
+  );
+}
+```
+
+### Display Online Count
+
+```tsx
+import { OnlineUserCount } from '@/components/OnlineUserCount';
+
+function Header() {
+  return <OnlineUserCount size="md" showIcon={true} />;
+}
+```
+
+## Performance Considerations
+
+### WebSocket Optimization
+- Single WebSocket connection per client
+- Broadcasts use rooms for targeted delivery
+- Automatic reconnection on disconnect
+
+### Database Optimization
+- Indexed columns for fast queries
+- Batch updates for multiple status changes
+- Cached online user list
+
+### Heartbeat Strategy
+- Optional heartbeat endpoint for inactive tabs
+- Last seen updated on disconnect automatically
+- No polling - purely event-driven
+
+## Privacy & Security
+
+### Status Preferences
+- **Online**: Visible to everyone (default)
+- **Appear Offline**: Hidden from online lists, can still play games
+
+### Data Protection
+- Status data only visible to authenticated users
+- WebSocket connections validated
+- Rate limiting on status updates
+
+## Migration
+
+To add this feature to an existing database:
+
+```bash
+# Run migration
+psql $DATABASE_URL < backend/migrations/001_add_online_status.sql
+```
+
+Or manually execute:
+```sql
+ALTER TABLE players 
+ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN IF NOT EXISTS online_status VARCHAR(20) DEFAULT 'online',
+ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_players_online ON players(is_online, online_status);
+```
+
+## Testing
+
+### Manual Testing Steps
+
+1. **Connect as User A**
+   - Check that online count increases
+   - Verify green indicator appears
+
+2. **Connect as User B**
+   - Check User A's status is online
+   - Test real-time updates
+
+3. **Change Status to "Appear Offline"**
+   - Verify removed from online list
+   - Check can still play games
+
+4. **Disconnect User A**
+   - Verify "Last seen" timestamp appears
+   - Check online count decreases
+
+5. **Wait 5 minutes**
+   - Verify "Last seen 5 minutes ago" updates
+
+### WebSocket Event Testing
+
+```javascript
+// Listen to status events (browser console)
+const socket = io('http://localhost:3000');
+socket.on('user_status_changed', data => console.log('Status:', data));
+socket.on('user_status_preference_changed', data => console.log('Preference:', data));
+```
 
 ## Future Enhancements
-- Real-time online status updates via WebSocket
-- "Last seen" timestamp for offline users
-- Online status toggle (appear offline feature)
-- Online user count in UI
+
+### Potential Additions
+- [ ] "Away" status (auto-detect inactivity)
+- [ ] Custom status messages
+- [ ] Friend-only visibility option
+- [ ] Typing indicators in challenges
+- [ ] Rich presence (showing current game)
+- [ ] Mobile push notifications for status changes
+- [ ] Activity status (In Game, In Queue, Idle)
+
+### Performance Improvements
+- [ ] Redis caching for online status
+- [ ] WebSocket rooms per friend group
+- [ ] Presence aggregation service
+- [ ] Status update debouncing
+
+## Troubleshooting
+
+### Status Not Updating
+
+**Check:**
+1. WebSocket connection (`getSocket().connected`)
+2. User registered (`socket.emit('register_player', ...)`)
+3. Database migration applied
+4. Backend logs for errors
+
+### "Last Seen" Not Displaying
+
+**Check:**
+1. Database column exists (`last_seen`)
+2. User has disconnected at least once
+3. Clock sync between client/server
+4. Date formatting library installed
+
+### Appear Offline Not Working
+
+**Check:**
+1. Status preference saved to database
+2. `getOnlineUsers()` filters `appear_offline`
+3. WebSocket broadcast sent
+4. Client hook subscribed to preference changes
+
+## Technical Details
+
+### WebSocket Flow
+
+```
+Client Connect
+  → socket.emit('register_player')
+  → Server: setUserOnlineStatus(true)
+  → Server: io.emit('user_status_changed')
+  → All Clients: Update UI
+
+Client Disconnect
+  → Server: setUserOnlineStatus(false)
+  → Server: updateLastSeen()
+  → Server: io.emit('user_status_changed')
+  → All Clients: Update UI
+```
+
+### Database Queries
+
+**Get Online Users:**
+```sql
+SELECT * FROM players 
+WHERE is_online = true 
+AND online_status != 'appear_offline'
+ORDER BY elo_rating DESC;
+```
+
+**Update Status:**
+```sql
+UPDATE players 
+SET is_online = $1, last_seen = NOW() 
+WHERE player_id = $2;
+```
+
+## Credits
+
+Feature developed as part of HemiChess real-time infrastructure enhancement.
+
+---
+
+**Last Updated:** 2024
+**Status:** ✅ Implemented and Production Ready

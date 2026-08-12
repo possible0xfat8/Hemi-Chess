@@ -5,6 +5,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Avatar } from '@/components/Avatar';
 import { AvatarUpload } from '@/components/AvatarUpload';
+import { OnlineStatusToggle } from '@/components/OnlineStatusToggle';
 import { DEFAULT_ELO } from '@/hooks/useUserStats';
 import { TrendingUp, TrendingDown, Copy, Check } from 'lucide-react';
 
@@ -377,6 +378,19 @@ export function ProfileClient() {
                     {message}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Online Status Settings */}
+            <div className="surface p-4 sm:p-6">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Privacy Settings</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-ink-muted mb-2 block">Online Status Visibility</label>
+                  <OnlineStatusToggle />
+                  <p className="mt-2 text-xs text-ink-faint">Control whether other players can see when you're online.</p>
+                </div>
               </div>
             </div>
           </div>

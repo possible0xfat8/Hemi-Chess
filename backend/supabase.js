@@ -53,7 +53,7 @@ async function getUserStatsByWallet(walletAddress) {
   try {
     const { data, error } = await supabase
       .from('players')
-      .select('player_id, username, wallet_address, avatar_url, elo_rating, total_games, wins, losses, draws')
+      .select('player_id, username, wallet_address, avatar_url, elo_rating, total_games, wins, losses, draws, last_seen, online_status, is_online')
       .eq('wallet_address', walletAddress.toLowerCase())
       .single();
     
@@ -578,6 +578,12 @@ module.exports = {
   deleteNotification,
   // Search
   searchPlayers,
+  // Online Status
+  setUserOnlineStatus,
+  setUserStatusPreference,
+  getUserOnlineStatus,
+  getOnlineUsers,
+  updateLastSeen,
 };
 
 
@@ -1185,5 +1191,168 @@ async function searchPlayers(searchTerm, limit = 10) {
   } catch (err) {
     console.error('[SEARCH] Error searching players:', err.message);
     return [];
+  }
+}
+
+// ============================================================================
+// ONLINE STATUS MANAGEMENT
+// ============================================================================
+
+/**
+ * Set user online status (connected/disconnected)
+ * @param {string} walletAddress - User wallet address
+ * @param {boolean} isOnline - True if online, false if offline
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+async function setUserOnlineStatus(walletAddress, isOnline) {
+  if (!isEnabled) return { success: false, error: 'Database not enabled' };
+  
+  try {
+    const playerId = walletAddress.toLowerCase();
+    const now = new Date().toISOString();
+    
+    const updateData = {
+      is_online: isOnline,
+      last_active: now,
+    };
+    
+    // Update last_seen when going offline
+    if (!isOnline) {
+      updateData.last_seen = now;
+    }
+    
+    const { error } = await supabase
+      .from('players')
+      .update(updateData)
+      .eq('player_id', playerId);
+    
+    if (error) throw error;
+    
+    console.log(`[ONLINE_STATUS] ${playerId.slice(0, 8)}... → ${isOnline ? 'online' : 'offline'}`);
+    
+    return { success: true };
+  } catch (err) {
+    console.error('[ONLINE_STATUS] Error setting online status:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Set user status preference (online, offline, appear_offline)
+ * @param {string} walletAddress - User wallet address
+ * @param {string} statusPreference - 'online', 'offline', or 'appear_offline'
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+async function setUserStatusPreference(walletAddress, statusPreference) {
+  if (!isEnabled) return { success: false, error: 'Database not enabled' };
+  
+  try {
+    const playerId = walletAddress.toLowerCase();
+    const validStatuses = ['online', 'offline', 'appear_offline'];
+    
+    if (!validStatuses.includes(statusPreference)) {
+      return { success: false, error: 'Invalid status preference' };
+    }
+    
+    const { error } = await supabase
+      .from('players')
+      .update({
+        online_status: statusPreference,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('player_id', playerId);
+    
+    if (error) throw error;
+    
+    console.log(`[ONLINE_STATUS] ${playerId.slice(0, 8)}... preference → ${statusPreference}`);
+    
+    return { success: true };
+  } catch (err) {
+    console.error('[ONLINE_STATUS] Error setting status preference:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Get user online status and last seen
+ * @param {string} walletAddress - User wallet address
+ * @returns {Promise<{is_online: boolean, last_seen: string, online_status: string}>}
+ */
+async function getUserOnlineStatus(walletAddress) {
+  if (!isEnabled) return null;
+  
+  try {
+    const playerId = walletAddress.toLowerCase();
+    
+    const { data, error } = await supabase
+      .from('players')
+      .select('is_online, last_seen, online_status')
+      .eq('player_id', playerId)
+      .single();
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (err) {
+    console.error('[ONLINE_STATUS] Error getting online status:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Get list of online users (respecting appear_offline preference)
+ * @param {number} limit - Limit results
+ * @returns {Promise<Array>}
+ */
+async function getOnlineUsers(limit = 100) {
+  if (!isEnabled) return [];
+  
+  try {
+    const { data, error } = await supabase
+      .from('players')
+      .select('player_id, username, avatar_url, elo_rating, wallet_address, total_games, wins, is_online, last_seen, online_status')
+      .eq('is_online', true)
+      .neq('online_status', 'appear_offline') // Exclude users who want to appear offline
+      .order('elo_rating', { ascending: false })
+      .limit(limit);
+    
+    if (error) throw error;
+    
+    return (data || []).map(player => ({
+      ...normalizePlayer(player),
+      online: true,
+    }));
+  } catch (err) {
+    console.error('[ONLINE_STATUS] Error getting online users:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Update last seen timestamp (heartbeat)
+ * @param {string} walletAddress - User wallet address
+ * @returns {Promise<{success: boolean}>}
+ */
+async function updateLastSeen(walletAddress) {
+  if (!isEnabled) return { success: false };
+  
+  try {
+    const playerId = walletAddress.toLowerCase();
+    const now = new Date().toISOString();
+    
+    const { error } = await supabase
+      .from('players')
+      .update({
+        last_seen: now,
+        last_active: now,
+      })
+      .eq('player_id', playerId);
+    
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (err) {
+    console.error('[ONLINE_STATUS] Error updating last seen:', err.message);
+    return { success: false };
   }
 }

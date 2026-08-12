@@ -6,6 +6,8 @@ import { Footer } from '@/components/Footer';
 import { Avatar } from '@/components/Avatar';
 import { DEFAULT_ELO } from '@/hooks/useUserStats';
 import { Copy, Check, UserPlus, Loader2, UserCheck } from 'lucide-react';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { formatDistanceToNow } from 'date-fns';
 
 interface UserProfileClientProps {
   walletAddress: string;
@@ -20,14 +22,15 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
   const [isFriend, setIsFriend] = useState(false);
   const [checkingFriendship, setCheckingFriendship] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(false);
 
   const isOwnProfile = currentUserAddress?.toLowerCase() === walletAddress.toLowerCase();
+  
+  // Track online status
+  const { isUserOnline, getLastSeen } = useOnlineStatus([walletAddress]);
 
   // Fetch user stats
   useEffect(() => {
     fetchStats();
-    checkOnlineStatus();
   }, [walletAddress]);
 
   // Check friendship status
@@ -36,25 +39,6 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
       checkFriendshipStatus();
     }
   }, [isConnected, currentUserAddress, walletAddress, isOwnProfile]);
-
-  const checkOnlineStatus = async () => {
-    try {
-      const apiUrl = getBackendUrl();
-      const response = await fetch(`${apiUrl}/api/users/online`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          const onlineUser = data.players.find((p: any) => 
-            p.wallet_address.toLowerCase() === walletAddress.toLowerCase()
-          );
-          setIsOnline(!!onlineUser);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to check online status:', error);
-    }
-  };
 
   const fetchStats = async () => {
     setIsLoadingStats(true);
@@ -156,7 +140,7 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
                 size="xl"
                 fallbackText={displayName}
                 showOnline={true}
-                isOnline={isOnline}
+                isOnline={isUserOnline(walletAddress)}
               />
               <div className="absolute -bottom-1 -right-1 w-7 h-7 sm:w-8 sm:h-8 bg-teal rounded-full border-4 border-[var(--canvas)] flex items-center justify-center">
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-canvas" fill="currentColor" viewBox="0 0 20 20">
@@ -180,13 +164,21 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
                   <span className="px-2 py-0.5 bg-[var(--surface-strong)] border border-line rounded text-xs font-semibold text-ink-muted">
                     Hemi Testnet
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs text-ink-faint">
-                    <div className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-orange opacity-75 animate-ping"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange"></span>
-                    </div>
-                    Active
-                  </span>
+                  {isUserOnline(walletAddress) ? (
+                    <span className="flex items-center gap-1.5 text-xs font-medium">
+                      <div className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75 animate-ping"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      </div>
+                      <span className="text-green-500">Online</span>
+                    </span>
+                  ) : getLastSeen(walletAddress) ? (
+                    <span className="text-xs text-ink-faint">
+                      Last seen {formatDistanceToNow(new Date(getLastSeen(walletAddress)!), { addSuffix: true })}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-ink-faint">Offline</span>
+                  )}
                 </div>
               </div>
             </div>

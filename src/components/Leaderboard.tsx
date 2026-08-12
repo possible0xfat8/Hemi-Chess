@@ -3,6 +3,7 @@ import { getBackendUrl } from '@/lib/config';
 import { Trophy, TrendingUp, Medal } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { Avatar } from '@/components/Avatar';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface LeaderboardEntry {
   rank: number;
@@ -24,6 +25,10 @@ export function Leaderboard() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Track online status for all players
+  const playerWallets = leaderboard.map(p => p.wallet_address);
+  const { isUserOnline } = useOnlineStatus(playerWallets);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -150,7 +155,7 @@ export function Leaderboard() {
                       size="md"
                       fallbackText={entry.username}
                       showOnline={true}
-                      isOnline={entry.online ?? false}
+                      isOnline={isUserOnline(entry.wallet_address)}
                     />
                     <div className="min-w-0">
                       <div className="font-semibold text-ink truncate">{entry.username}</div>
@@ -212,7 +217,7 @@ export function Leaderboard() {
                 size="sm"
                 fallbackText={entry.username}
                 showOnline={true}
-                isOnline={entry.online ?? false}
+                isOnline={isUserOnline(entry.wallet_address)}
               />
               <div className="min-w-0 flex-1">
                 <div className="font-bold text-ink truncate leading-tight">{entry.username}</div>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useAccount } from 'wagmi';
 import { getSocket, registerPlayerOnline } from '@/lib/socket';
+import { getBackendUrl } from '@/lib/config';
 import { useNavigate } from '@tanstack/react-router';
 
 export interface Notification {
@@ -79,14 +80,38 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     
     const socket = getSocket();
     
+    // Fetch user data and register player as online with username
+    const registerPlayer = async () => {
+      try {
+        const apiUrl = getBackendUrl();
+        const response = await fetch(`${apiUrl}/api/users/${address.toLowerCase()}/stats`);
+        
+        let username = `${address.slice(0, 6)}...${address.slice(-4)}`;
+        
+        if (response.ok) {
+          const stats = await response.json();
+          if (stats.username) {
+            username = stats.username;
+          }
+        }
+        
+        registerPlayerOnline(address, username);
+        console.log('[ONLINE] Registered as:', username);
+      } catch (error) {
+        console.error('[ONLINE] Error fetching user data:', error);
+        // Register with truncated address as fallback
+        registerPlayerOnline(address);
+      }
+    };
+    
     // Register player as online when socket connects
     if (socket.connected) {
-      registerPlayerOnline(address);
+      registerPlayer();
     }
     
     // Re-register on reconnect
     const handleConnect = () => {
-      registerPlayerOnline(address);
+      registerPlayer();
     };
     
     socket.on('connect', handleConnect);

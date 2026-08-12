@@ -14,7 +14,10 @@ CREATE TABLE players (
     draws INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    online_status VARCHAR(20) DEFAULT 'online', -- 'online', 'offline', 'appear_offline'
+    is_online BOOLEAN DEFAULT FALSE
 );
 
 -- Game history table

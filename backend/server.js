@@ -700,6 +700,96 @@ app.get('/api/users/:address/history', async (req, res) => {
   }
 });
 
+// ============================================================================
+// ONLINE STATUS API ENDPOINTS
+// ============================================================================
+
+// Get user online status
+app.get('/api/user/:wallet/status', async (req, res) => {
+  if (!dbEnabled) {
+    return res.json({ 
+      is_online: false, 
+      online_status: 'offline',
+      message: 'Database not enabled' 
+    });
+  }
+  
+  try {
+    const { wallet } = req.params;
+    
+    // Validate address format
+    if (!/^0x[a-fA-F0-9]{40}$/i.test(wallet)) {
+      return res.status(400).json({ error: 'Invalid wallet address format' });
+    }
+    
+    const status = await db.getUserOnlineStatus(wallet.toLowerCase());
+    res.json(status);
+  } catch (err) {
+    console.error('[API] Error getting user online status:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update user status preference (online, appear_offline)
+app.post('/api/user/status', async (req, res) => {
+  if (!dbEnabled) {
+    return res.status(503).json({ error: 'Database not enabled' });
+  }
+  
+  try {
+    const { walletAddress, statusPreference } = req.body;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress is required' });
+    }
+    
+    if (!statusPreference || !['online', 'offline', 'appear_offline'].includes(statusPreference)) {
+      return res.status(400).json({ error: 'Invalid statusPreference' });
+    }
+    
+    const result = await db.setUserStatusPreference(walletAddress.toLowerCase(), statusPreference);
+    
+    if (result.success) {
+      // Broadcast status preference change to all connected clients
+      io.emit('user_status_preference_changed', {
+        walletAddress: walletAddress.toLowerCase(),
+        statusPreference,
+        timestamp: Date.now()
+      });
+      
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (err) {
+    console.error('[API] Error updating status preference:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Heartbeat endpoint to keep user online
+app.post('/api/user/heartbeat', async (req, res) => {
+  if (!dbEnabled) {
+    return res.json({ success: true, message: 'Database not enabled' });
+  }
+  
+  try {
+    const { walletAddress } = req.body;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress is required' });
+    }
+    
+    // Update last_active timestamp
+    await db.setUserOnlineStatus(walletAddress.toLowerCase(), true);
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[API] Error updating heartbeat:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // NEW: Get leaderboard
 app.get('/api/leaderboard', async (req, res) => {
   if (!dbEnabled) {
@@ -1022,7 +1112,51 @@ app.get('/api/users/online', async (req, res) => {
   try {
     const { excludeUserId } = req.query;
     
-    // Get all online players from playerSockets map
+    if (dbEnabled) {
+      // Query database for online users (source of truth)
+      try {
+        const { data: onlineUsers, error } = await db.supabase
+          .from('players')
+          .select('player_id, username, wallet_address, elo_rating, total_games, wins, losses, avatar_url, is_online, online_status')
+          .eq('is_online', true);
+        
+        if (error) throw error;
+        
+        const filteredPlayers = (onlineUsers || [])
+          .filter(user => {
+            // Exclude the requesting user
+            if (excludeUserId && user.player_id === excludeUserId.toLowerCase()) {
+              return false;
+            }
+            // Respect appear_offline preference
+            if (user.online_status === 'appear_offline') {
+              return false;
+            }
+            return true;
+          })
+          .map(user => ({
+            player_id: user.player_id,
+            username: user.username || `${user.player_id.slice(0, 6)}...${user.player_id.slice(-4)}`,
+            wallet_address: user.wallet_address || user.player_id,
+            elo_rating: user.elo_rating || 1200,
+            total_games: user.total_games || 0,
+            wins: user.wins || 0,
+            losses: user.losses || 0,
+            avatar_url: user.avatar_url || null,
+            online: true,
+          }));
+        
+        // Sort by ELO rating descending
+        filteredPlayers.sort((a, b) => b.elo_rating - a.elo_rating);
+        
+        return res.json({ success: true, players: filteredPlayers, count: filteredPlayers.length });
+      } catch (err) {
+        console.error('[API] Error querying online users from database:', err);
+        // Fall through to in-memory fallback
+      }
+    }
+    
+    // Fallback to in-memory playerSockets (when DB is disabled or query fails)
     const onlinePlayers = Array.from(playerSockets.values())
       .filter((data, index, self) => {
         // Deduplicate by playerId (same player can have multiple sockets)
@@ -1037,39 +1171,55 @@ app.get('/api/users/online', async (req, res) => {
         username: data.playerName || `${data.playerId.slice(0, 6)}...${data.playerId.slice(-4)}`,
         wallet_address: data.playerId,
         online: true,
+        elo_rating: 1200,
+        total_games: 0,
+        wins: 0,
+        losses: 0,
+        avatar_url: null,
       }));
     
-    // If database is enabled, enrich with ELO ratings
-    if (dbEnabled && onlinePlayers.length > 0) {
-      try {
-        const enrichedPlayers = await Promise.all(
-          onlinePlayers.map(async (player) => {
-            const stats = await db.getUserStatsByWallet(player.wallet_address);
-            return {
-              ...player,
-              elo_rating: stats?.elo_rating || 1200,
-              total_games: stats?.total_games || 0,
-              wins: stats?.wins || 0,
-              losses: stats?.losses || 0,
-              avatar_url: stats?.avatar_url || null,
-            };
-          })
-        );
-        
-        // Sort by ELO rating descending
-        enrichedPlayers.sort((a, b) => b.elo_rating - a.elo_rating);
-        
-        res.json({ success: true, players: enrichedPlayers, count: enrichedPlayers.length });
-      } catch (err) {
-        console.error('[API] Error enriching online users:', err);
-        // Return basic list without enrichment
-        res.json({ success: true, players: onlinePlayers, count: onlinePlayers.length });
-      }
-    } else {
-      res.json({ success: true, players: onlinePlayers, count: onlinePlayers.length });
-    }
+    res.json({ success: true, players: onlinePlayers, count: onlinePlayers.length });
   } catch (err) {
     console.error('[API] Error getting online users:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get active/live games (for spectating)
+app.get('/api/games/live', async (req, res) => {
+  try {
+    const liveGames = [];
+    
+    for (const [gameId, gameState] of activeGames.entries()) {
+      // Only show active (ongoing) games, not completed ones
+      if (gameState.status === 'active') {
+        liveGames.push({
+          gameId,
+          whitePlayer: {
+            name: gameState.players.white.name || 'Player',
+            elo: gameState.players.white.elo || 1200,
+            walletAddress: gameState.players.white.walletAddress,
+          },
+          blackPlayer: {
+            name: gameState.players.black.name || 'Player',
+            elo: gameState.players.black.elo || 1200,
+            walletAddress: gameState.players.black.walletAddress,
+          },
+          spectatorCount: gameState.spectators.size,
+          moveCount: gameState.moveHistory.length,
+          createdAt: gameState.createdAt,
+          isRanked: gameState.isRanked !== false, // Default true if not specified
+          isFriendMatch: gameState.isFriendMatch || false,
+        });
+      }
+    }
+    
+    // Sort by most recent first
+    liveGames.sort((a, b) => b.createdAt - a.createdAt);
+    
+    res.json({ success: true, games: liveGames, count: liveGames.length });
+  } catch (err) {
+    console.error('[API] Error getting live games:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -1468,22 +1618,21 @@ async function tryMatchPlayers() {
     if (whiteSocket) whiteSocket.join(gameId);
     if (blackSocket) blackSocket.join(gameId);
 
+    // Fetch avatars for both players (BEFORE emitting events)
+    let whiteAvatarUrl = null;
+    if (whitePlayer.walletAddress && dbEnabled) {
+      const whiteStats = await db.getUserStatsByWallet(whitePlayer.walletAddress);
+      whiteAvatarUrl = whiteStats?.avatar_url || null;
+    }
+    
+    let blackAvatarUrl = null;
+    if (blackPlayer.walletAddress && dbEnabled) {
+      const blackStats = await db.getUserStatsByWallet(blackPlayer.walletAddress);
+      blackAvatarUrl = blackStats?.avatar_url || null;
+    }
+
     // Notify both players with ELO data and avatar URLs
     if (whiteSocket) {
-      // Fetch white player's avatar
-      let whiteAvatarUrl = null;
-      if (whitePlayer.walletAddress && dbEnabled) {
-        const whiteStats = await db.getUserStatsByWallet(whitePlayer.walletAddress);
-        whiteAvatarUrl = whiteStats?.avatar_url || null;
-      }
-      
-      // Fetch black player's avatar
-      let blackAvatarUrl = null;
-      if (blackPlayer.walletAddress && dbEnabled) {
-        const blackStats = await db.getUserStatsByWallet(blackPlayer.walletAddress);
-        blackAvatarUrl = blackStats?.avatar_url || null;
-      }
-      
       whiteSocket.emit('game_found', {
         gameId,
         color: 'white',
@@ -1811,7 +1960,7 @@ io.on('connection', (socket) => {
   console.log(`[+] Player connected: ${socket.id} (Total: ${io.sockets.sockets.size})`);
 
   // Register player as online (for friends/challenges)
-  socket.on('register_player', ({ walletAddress, playerName }) => {
+  socket.on('register_player', async ({ walletAddress, playerName }) => {
     if (!walletAddress) return;
     
     const playerId = walletAddress.toLowerCase();
@@ -1823,6 +1972,18 @@ io.on('connection', (socket) => {
       playerName: effectiveName,
       joinedAt: Date.now()
     });
+    
+    // Update database online status
+    if (dbEnabled) {
+      await db.setUserOnlineStatus(playerId, true);
+      
+      // Broadcast status update to all connected clients
+      io.emit('user_status_changed', {
+        walletAddress: playerId,
+        is_online: true,
+        timestamp: Date.now()
+      });
+    }
     
     console.log(`[REGISTER] ${effectiveName} registered as online (socket: ${socket.id})`);
   });
@@ -2615,6 +2776,96 @@ io.on('connection', (socket) => {
     });
   });
 
+  // ============================================================================
+  // SPECTATOR HANDLERS
+  // ============================================================================
+
+  // Join game as spectator (read-only)
+  socket.on('spectate_game', ({ gameId }) => {
+    if (!gameId) {
+      socket.emit('spectate_error', { error: 'Game ID required' });
+      return;
+    }
+    
+    const gameState = activeGames.get(gameId);
+    if (!gameState) {
+      socket.emit('spectate_error', { error: 'Game not found' });
+      return;
+    }
+    
+    if (gameState.status !== 'active') {
+      socket.emit('spectate_error', { error: 'Game is not active' });
+      return;
+    }
+    
+    // Check if socket is already a player in this game
+    const isPlayer = gameState.players.white.socketId === socket.id || 
+                     gameState.players.black.socketId === socket.id;
+    
+    if (isPlayer) {
+      socket.emit('spectate_error', { error: 'You are already playing in this game' });
+      return;
+    }
+    
+    // Add to spectators set
+    gameState.spectators.add(socket.id);
+    
+    // Join the socket room to receive updates
+    socket.join(gameId);
+    
+    console.log(`[SPECTATE] Socket ${socket.id} joined game ${gameId} as spectator (${gameState.spectators.size} total)`);
+    
+    // Send current game state to spectator
+    socket.emit('spectate_joined', {
+      gameId,
+      whitePlayer: {
+        name: gameState.players.white.name || 'Player',
+        elo: gameState.players.white.elo || 1200,
+      },
+      blackPlayer: {
+        name: gameState.players.black.name || 'Player',
+        elo: gameState.players.black.elo || 1200,
+      },
+      fen: gameState.game.fen(),
+      whiteTime: gameState.players.white.timeLeft,
+      blackTime: gameState.players.black.timeLeft,
+      moveHistory: gameState.moveHistory,
+      lastMove: gameState.moveHistory.length > 0 
+        ? { 
+            from: gameState.moveHistory[gameState.moveHistory.length - 1].move?.from,
+            to: gameState.moveHistory[gameState.moveHistory.length - 1].move?.to 
+          }
+        : null,
+      spectatorCount: gameState.spectators.size,
+    });
+    
+    // Notify players about new spectator count
+    io.to(gameId).emit('spectator_count_updated', { 
+      count: gameState.spectators.size 
+    });
+  });
+
+  // Leave spectating
+  socket.on('leave_spectate', ({ gameId }) => {
+    if (!gameId) return;
+    
+    const gameState = activeGames.get(gameId);
+    if (!gameState) return;
+    
+    // Remove from spectators
+    if (gameState.spectators.has(socket.id)) {
+      gameState.spectators.delete(socket.id);
+      socket.leave(gameId);
+      
+      console.log(`[SPECTATE] Socket ${socket.id} left game ${gameId} (${gameState.spectators.size} remaining)`);
+      
+      // Notify remaining spectators and players about count change
+      io.to(gameId).emit('spectator_count_updated', { 
+        count: gameState.spectators.size 
+      });
+    }
+  });
+
   // Handle disconnect
   // Broadcast backend URL change (admin only - with verification)
   socket.on('broadcast_backend_url', ({ backendUrl, adminWallet }) => {
@@ -2711,6 +2962,18 @@ io.on('connection', (socket) => {
 
     // Handle disconnect for active games
     for (const [gameId, gameState] of activeGames.entries()) {
+      // Check if disconnecting socket is a spectator
+      if (gameState.spectators.has(socket.id)) {
+        gameState.spectators.delete(socket.id);
+        console.log(`[SPECTATE] Spectator ${socket.id} disconnected from game ${gameId} (${gameState.spectators.size} remaining)`);
+        
+        // Notify remaining spectators and players about count change
+        io.to(gameId).emit('spectator_count_updated', { 
+          count: gameState.spectators.size 
+        });
+        continue; // Skip to next game
+      }
+      
       let disconnectedWallet = null;
       let disconnectedColor = null;
       
@@ -2788,6 +3051,28 @@ io.on('connection', (socket) => {
     }
 
     playerSockets.delete(socket.id);
+    
+    // Update database online status if player was registered
+    if (disconnectedPlayer && dbEnabled) {
+      // Check if player has any other active sockets
+      const hasOtherSockets = Array.from(playerSockets.values())
+        .some(data => data.playerId === disconnectedPlayer.playerId);
+      
+      // Only mark offline if no other sockets remain
+      if (!hasOtherSockets) {
+        db.setUserOnlineStatus(disconnectedPlayer.playerId, false)
+          .then(() => {
+            // Broadcast status update to all connected clients
+            io.emit('user_status_changed', {
+              walletAddress: disconnectedPlayer.playerId,
+              is_online: false,
+              timestamp: Date.now()
+            });
+            console.log(`[STATUS] ${disconnectedPlayer.playerId.slice(0, 8)}... → offline`);
+          })
+          .catch(err => console.error('[STATUS] Failed to update online status:', err));
+      }
+    }
   });
 });
 

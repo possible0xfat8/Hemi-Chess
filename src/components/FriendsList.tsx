@@ -5,6 +5,7 @@ import { Users, Swords, UserMinus, Search, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '@/components/Avatar';
 import { ClickableUsername } from '@/components/ClickableUsername';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface Friend {
   friendship_id: number;
@@ -41,6 +42,10 @@ export function FriendsList() {
   const [searching, setSearching] = useState(false);
   const [activeTab, setActiveTab] = useState<'friends' | 'search'>('friends');
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
+
+  // Track online status for friends
+  const friendWallets = friends.map(f => f.wallet_address);
+  const { isUserOnline, getLastSeen } = useOnlineStatus(friendWallets);
 
   // Fetch friends list
   const fetchFriends = async () => {
@@ -274,7 +279,7 @@ export function FriendsList() {
                     fallbackText={friend.username}
                     className="bg-gradient-to-br from-orange to-amber-600"
                     showOnline={true}
-                    isOnline={friend.online ?? false}
+                    isOnline={isUserOnline(friend.wallet_address)}
                   />
 
                   {/* Info */}
@@ -288,6 +293,12 @@ export function FriendsList() {
                       <span>{friend.elo_rating} ELO</span>
                       <span>•</span>
                       <span>{friend.total_games} games</span>
+                      {!isUserOnline(friend.wallet_address) && getLastSeen(friend.wallet_address) && (
+                        <>
+                          <span>•</span>
+                          <span>Last seen {formatDistanceToNow(new Date(getLastSeen(friend.wallet_address)!), { addSuffix: true })}</span>
+                        </>
+                      )}
                     </div>
                   </div>
 

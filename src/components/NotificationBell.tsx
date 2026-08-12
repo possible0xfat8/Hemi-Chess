@@ -154,9 +154,9 @@ export function NotificationBell() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-[var(--surface)] border border-line rounded-lg shadow-lg z-50 max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="absolute right-0 mt-2 w-96 bg-[var(--surface)] border border-line rounded-lg shadow-2xl z-50 max-h-[80vh] overflow-hidden flex flex-col backdrop-blur-sm">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-line flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-line flex items-center justify-between bg-[var(--surface)]">
             <h3 className="font-semibold text-ink">Notifications</h3>
             {unreadCount > 0 && (
               <span className="text-xs text-ink-muted">{unreadCount} unread</span>
@@ -164,9 +164,9 @@ export function NotificationBell() {
           </div>
 
           {/* Notifications List */}
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 bg-[var(--surface)]">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center">
+              <div className="p-8 text-center bg-[var(--surface)]">
                 <Bell className="w-12 h-12 mx-auto mb-3 text-ink-faint" />
                 <p className="text-sm text-ink-muted">No notifications yet</p>
               </div>
@@ -175,13 +175,8 @@ export function NotificationBell() {
                 <div
                   key={notification.id}
                   className={`p-4 border-b border-line hover:bg-[var(--surface-strong)] transition-colors ${
-                    notification.status === 'unread' ? 'bg-orange/5' : ''
+                    notification.status === 'unread' ? 'bg-orange/5' : 'bg-[var(--surface)]'
                   }`}
-                  onClick={() => {
-                    if (notification.status === 'unread') {
-                      markAsRead(notification.id);
-                    }
-                  }}
                 >
                   <div className="flex items-start gap-3">
                     {/* Icon */}
@@ -237,7 +232,7 @@ export function NotificationBell() {
                         </div>
                       )}
 
-                      {notification.status === 'unread' && notification.type === 'match_challenge' && (
+                      {(notification.status === 'unread' || notification.status === 'read') && notification.type === 'match_challenge' && (
                         <div className="flex gap-2 mt-3">
                           <button
                             onClick={(e) => {
