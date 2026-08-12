@@ -828,7 +828,7 @@ export function PlayClient() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas overflow-x-hidden">
       {/* Spectator Modal */}
       {spectatingGameId && spectatingPlayers && (
         <SpectatorView
@@ -841,7 +841,7 @@ export function PlayClient() {
       <Navbar />
       <SettlementToast />
 
-      <main className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8 overflow-x-hidden">
         {/* ── Lobby ───────────────────────────────────────── */}
         {gameState === 'menu' && (
           <div className="space-y-4 sm:space-y-6">
@@ -864,7 +864,7 @@ export function PlayClient() {
             )}
 
             <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.15fr_1fr]">
-              <section className="surface p-4 sm:p-6 md:p-8">
+              <section className="surface p-4 sm:p-6 md:p-8 min-w-0">
                 {isConnected && address ? (
                   <>
                     <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Time control</h2>
@@ -927,7 +927,7 @@ export function PlayClient() {
               </section>
 
               {/* Right column: Online Users + Live Games + Recent Form */}
-              <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-4 sm:space-y-6 min-w-0">
                 {/* Online Users + Live Games: Stacked on mobile, stacked on larger screens */}
                 <div className="space-y-4 sm:space-y-6">
                   {/* Online Users */}
@@ -943,7 +943,7 @@ export function PlayClient() {
                 </div>
 
                 {/* Recent Form - moved below Online Users and Live Games */}
-                <section className="surface p-6 sm:p-8">
+                <section className="surface p-6 sm:p-8 min-w-0">
                   <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink-faint">Recent form</h2>
                   <div className="flex flex-wrap items-center gap-2">
                     {isLoadingHistory ? (
