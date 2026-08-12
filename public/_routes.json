@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/assets/*",
+    "/*.png",
+    "/*.jpg",
+    "/*.jpeg",
+    "/*.svg",
+    "/*.ico",
+    "/*.txt",
+    "/*.xml",
+    "/default-avatar.png",
+    "/default-avatar.svg",
+    "/favicon.ico",
+    "/favicon.png",
+    "/file.svg",
+    "/globe.svg",
+    "/Hemi Chess Logo and Text.png",
+    "/Hemi Chess Logo Text.png",
+    "/Hemi Chess Logo.png",
+    "/hemi-chess-icon.png",
+    "/hemi-chess-logo.png",
+    "/next.svg",
+    "/robots.txt",
+    "/spotlight image.png",
+    "/vercel.svg",
+    "/window.svg"
+  ]
+}
