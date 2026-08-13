@@ -26,13 +26,15 @@ if (!supabaseUrl || !supabaseKey) {
   console.log('[SUPABASE] ⚠ Add SUPABASE_URL and SUPABASE_SERVICE_KEY to .env');
   console.log('[SUPABASE] ⚠ URL:', supabaseUrl || 'MISSING');
   console.log('[SUPABASE] ⚠ Key:', supabaseKey ? 'Present but empty after validation' : 'MISSING');
+  console.log('[SUPABASE] ⚠ isEnabled will remain:', isEnabled);
 } else {
   try {
     console.log('[SUPABASE] Creating client with URL:', supabaseUrl.slice(0, 40));
     supabase = createClient(supabaseUrl, supabaseKey);
     isEnabled = true;
     console.log('[SUPABASE] ✓ Client object created');
-    console.log('[SUPABASE] ✓ isEnabled set to TRUE');
+    console.log('[SUPABASE] ✓ isEnabled set to:', isEnabled);
+    console.log('[SUPABASE] ✓ supabase object type:', typeof supabase);
     console.log('[SUPABASE] ✓ Testing connection...');
     
     // Test the connection with a simple query
@@ -58,8 +60,11 @@ if (!supabaseUrl || !supabaseKey) {
     console.error('[SUPABASE] ✗ Error stack:', error.stack);
     supabase = null;
     isEnabled = false;
+    console.log('[SUPABASE] ✗ isEnabled set to FALSE due to error');
   }
 }
+
+console.log('[SUPABASE] Final module state - isEnabled:', isEnabled, 'supabase:', !!supabase);
 
 // Re-export database functions using Supabase client
 // NOTE: Don't destructure here - we'll export at the bottom
