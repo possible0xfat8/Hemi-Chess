@@ -8,8 +8,8 @@ const { createClient } = require('@supabase/supabase-js');
 const { calculateMatchElo } = require('./services/eloMath');
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL?.trim();
+const supabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY)?.trim();
 
 // Declare these at module scope so they can be exported
 let supabase = null;
@@ -24,11 +24,16 @@ console.log('[SUPABASE] - Key length:', supabaseKey?.length || 0);
 if (!supabaseUrl || !supabaseKey) {
   console.log('[SUPABASE] ⚠ Environment variables not configured');
   console.log('[SUPABASE] ⚠ Add SUPABASE_URL and SUPABASE_SERVICE_KEY to .env');
+  console.log('[SUPABASE] ⚠ URL:', supabaseUrl || 'MISSING');
+  console.log('[SUPABASE] ⚠ Key:', supabaseKey ? 'Present but empty after validation' : 'MISSING');
 } else {
   try {
+    console.log('[SUPABASE] Creating client with URL:', supabaseUrl.slice(0, 40));
     supabase = createClient(supabaseUrl, supabaseKey);
     isEnabled = true;
-    console.log('[SUPABASE] ✓ Client created, testing connection...');
+    console.log('[SUPABASE] ✓ Client object created');
+    console.log('[SUPABASE] ✓ isEnabled set to TRUE');
+    console.log('[SUPABASE] ✓ Testing connection...');
     
     // Test the connection with a simple query
     supabase
@@ -38,15 +43,19 @@ if (!supabaseUrl || !supabaseKey) {
       .then(({ data, error }) => {
         if (error) {
           console.error('[SUPABASE] ✗ Connection test failed:', error.message);
+          console.error('[SUPABASE] ✗ Error code:', error.code);
+          console.error('[SUPABASE] ✗ Error details:', error.details);
         } else {
           console.log('[SUPABASE] ✓ Connection test successful');
         }
       })
       .catch(err => {
         console.error('[SUPABASE] ✗ Connection test error:', err.message);
+        console.error('[SUPABASE] ✗ Error stack:', err.stack);
       });
   } catch (error) {
     console.error('[SUPABASE] ✗ Client initialization failed:', error.message);
+    console.error('[SUPABASE] ✗ Error stack:', error.stack);
     supabase = null;
     isEnabled = false;
   }
