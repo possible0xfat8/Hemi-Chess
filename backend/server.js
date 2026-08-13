@@ -73,6 +73,31 @@ function saveBackendConfig(url) {
 loadBackendConfig();
 console.log('[CONFIG] Current backend URL:', serverBackendUrl);
 
+// Diagnostic endpoint to check environment and database status
+app.get('/api/diagnostic', (req, res) => {
+  res.json({
+    status: 'online',
+    timestamp: new Date().toISOString(),
+    database: {
+      enabled: dbEnabled,
+      supabaseUrl: process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL.slice(0, 30)}...` : 'NOT SET',
+      supabaseKeyPresent: !!process.env.SUPABASE_SERVICE_KEY,
+      supabaseKeyLength: process.env.SUPABASE_SERVICE_KEY?.length || 0
+    },
+    blockchain: {
+      settlementEnabled: isSettlementEnabled,
+      oracleAddress: getOracleAddress()
+    },
+    storage: {
+      r2Enabled: isR2Enabled
+    },
+    environment: {
+      nodeEnv: process.env.NODE_ENV || 'development',
+      port: process.env.PORT || 3001
+    }
+  });
+});
+
 // Try to load Supabase database (uses HTTPS - works everywhere!)
 let db = null;
 let dbEnabled = false;

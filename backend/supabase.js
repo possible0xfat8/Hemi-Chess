@@ -11,14 +11,25 @@ const { calculateMatchElo } = require('./services/eloMath');
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
+console.log('[SUPABASE] Initialization check:');
+console.log('[SUPABASE] - URL present:', !!supabaseUrl);
+console.log('[SUPABASE] - URL value:', supabaseUrl ? `${supabaseUrl.slice(0, 30)}...` : 'NOT SET');
+console.log('[SUPABASE] - Key present:', !!supabaseKey);
+console.log('[SUPABASE] - Key length:', supabaseKey?.length || 0);
+
 if (!supabaseUrl || !supabaseKey) {
   console.log('[SUPABASE] ⚠ Environment variables not configured');
   console.log('[SUPABASE] ⚠ Add SUPABASE_URL and SUPABASE_SERVICE_KEY to .env');
   module.exports = { supabase: null, isEnabled: false };
 } else {
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  console.log('[SUPABASE] ✓ Client initialized');
-  module.exports = { supabase, isEnabled: true };
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('[SUPABASE] ✓ Client initialized successfully');
+    module.exports = { supabase, isEnabled: true };
+  } catch (error) {
+    console.error('[SUPABASE] ✗ Client initialization failed:', error.message);
+    module.exports = { supabase: null, isEnabled: false };
+  }
 }
 
 // Re-export database functions using Supabase client
