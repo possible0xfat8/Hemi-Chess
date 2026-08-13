@@ -1,0 +1,6 @@
+name = "hemi-chess"
+compatibility_date = "2026-08-12"
+pages_build_output_dir = ".output/public"
+
+[site]
+bucket = ".output/public"
