@@ -16,15 +16,7 @@ if (!supabaseUrl || !supabaseKey) {
   console.log('[SUPABASE] ⚠ Add SUPABASE_URL and SUPABASE_SERVICE_KEY to .env');
   module.exports = { supabase: null, isEnabled: false };
 } else {
-  // For Node.js < 22, disable realtime to avoid WebSocket errors
-  const clientOptions = {};
-  const nodeMajorVersion = parseInt(process.version.slice(1).split('.')[0]);
-  if (nodeMajorVersion < 22) {
-    console.log(`[SUPABASE] Node ${process.version} detected, disabling realtime to avoid WebSocket errors`);
-    clientOptions.realtime = { disabled: true };
-  }
-  
-  const supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
+  const supabase = createClient(supabaseUrl, supabaseKey);
   console.log('[SUPABASE] ✓ Client initialized');
   module.exports = { supabase, isEnabled: true };
 }
