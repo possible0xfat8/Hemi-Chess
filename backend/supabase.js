@@ -8,72 +8,29 @@ const { createClient } = require('@supabase/supabase-js');
 const { calculateMatchElo } = require('./services/eloMath');
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL?.trim();
-const supabaseKey = (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY)?.trim();
-
-// Declare these at module scope so they can be exported
-let supabase = null;
-let isEnabled = false;
-
-console.log('[SUPABASE] Initialization check:');
-console.log('[SUPABASE] - URL present:', !!supabaseUrl);
-console.log('[SUPABASE] - URL value:', supabaseUrl ? `${supabaseUrl.slice(0, 30)}...` : 'NOT SET');
-console.log('[SUPABASE] - Key present:', !!supabaseKey);
-console.log('[SUPABASE] - Key length:', supabaseKey?.length || 0);
-console.log('[SUPABASE] - Node version:', process.version);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.log('[SUPABASE] ⚠ Environment variables not configured');
   console.log('[SUPABASE] ⚠ Add SUPABASE_URL and SUPABASE_SERVICE_KEY to .env');
-  console.log('[SUPABASE] ⚠ URL:', supabaseUrl || 'MISSING');
-  console.log('[SUPABASE] ⚠ Key:', supabaseKey ? 'Present but empty after validation' : 'MISSING');
-  console.log('[SUPABASE] ⚠ isEnabled will remain:', isEnabled);
+  module.exports = { supabase: null, isEnabled: false };
 } else {
-  try {
-    console.log('[SUPABASE] Creating client with URL:', supabaseUrl.slice(0, 40));
-    
-    // For Node.js < 22, provide WebSocket polyfill to avoid realtime errors
-    const clientOptions = {};
-    if (parseInt(process.version.slice(1).split('.')[0]) < 22) {
-      console.log('[SUPABASE] Node < 22 detected, disabling realtime to avoid WebSocket errors');
-      clientOptions.realtime = { disabled: true };
-    }
-    
-    supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
-    isEnabled = true;
-    console.log('[SUPABASE] ✓ Client object created');
-    console.log('[SUPABASE] ✓ isEnabled set to:', isEnabled);
-    console.log('[SUPABASE] ✓ supabase object type:', typeof supabase);
-    console.log('[SUPABASE] ✓ Testing connection...');
-    
-    // Test the connection with a simple query
-    supabase
-      .from('players')
-      .select('count')
-      .limit(1)
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('[SUPABASE] ✗ Connection test failed:', error.message);
-          console.error('[SUPABASE] ✗ Error code:', error.code);
-          console.error('[SUPABASE] ✗ Error details:', error.details);
-        } else {
-          console.log('[SUPABASE] ✓ Connection test successful');
-        }
-      })
-      .catch(err => {
-        console.error('[SUPABASE] ✗ Connection test error:', err.message);
-        console.error('[SUPABASE] ✗ Error stack:', err.stack);
-      });
-  } catch (error) {
-    console.error('[SUPABASE] ✗ Client initialization failed:', error.message);
-    console.error('[SUPABASE] ✗ Error stack:', error.stack);
-    supabase = null;
-    isEnabled = false;
-    console.log('[SUPABASE] ✗ isEnabled set to FALSE due to error');
+  // For Node.js < 22, disable realtime to avoid WebSocket errors
+  const clientOptions = {};
+  const nodeMajorVersion = parseInt(process.version.slice(1).split('.')[0]);
+  if (nodeMajorVersion < 22) {
+    console.log(`[SUPABASE] Node ${process.version} detected, disabling realtime to avoid WebSocket errors`);
+    clientOptions.realtime = { disabled: true };
   }
+  
+  const supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
+  console.log('[SUPABASE] ✓ Client initialized');
+  module.exports = { supabase, isEnabled: true };
 }
 
-console.log('[SUPABASE] Final module state - isEnabled:', isEnabled, 'supabase:', !!supabase);
+// Re-export database functions using Supabase client
+const { supabase, isEnabled } = module.exports;
 
 // Re-export database functions using Supabase client
 // NOTE: Don't destructure here - we'll export at the bottom
