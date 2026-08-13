@@ -149,6 +149,50 @@ app.get('/api/diagnostic', (req, res) => {
   });
 });
 
+// Test Supabase connection endpoint
+app.get('/api/test-supabase', async (req, res) => {
+  if (!dbEnabled) {
+    return res.json({
+      success: false,
+      error: 'Database not enabled',
+      details: {
+        supabaseUrl: process.env.SUPABASE_URL ? 'Present' : 'Missing',
+        supabaseKey: process.env.SUPABASE_SERVICE_KEY ? 'Present' : 'Missing'
+      }
+    });
+  }
+
+  try {
+    // Try to query the players table
+    const { data, error } = await db.supabase
+      .from('players')
+      .select('count')
+      .limit(1);
+
+    if (error) {
+      return res.json({
+        success: false,
+        error: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Supabase connection successful',
+      canQueryDatabase: true
+    });
+  } catch (err) {
+    res.json({
+      success: false,
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
+
 // Get authoritative backend URL (for all users)
 app.get('/api/backend-url', (req, res) => {
   res.json({
