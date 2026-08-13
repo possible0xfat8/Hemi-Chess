@@ -128,6 +128,7 @@ app.get('/health', (req, res) => {
 app.get('/api/diagnostic', (req, res) => {
   res.json({
     status: 'online',
+    version: '9744a7e', // Git commit hash for tracking
     timestamp: new Date().toISOString(),
     database: {
       enabled: dbEnabled,
