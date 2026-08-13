@@ -20,6 +20,7 @@ console.log('[SUPABASE] - URL present:', !!supabaseUrl);
 console.log('[SUPABASE] - URL value:', supabaseUrl ? `${supabaseUrl.slice(0, 30)}...` : 'NOT SET');
 console.log('[SUPABASE] - Key present:', !!supabaseKey);
 console.log('[SUPABASE] - Key length:', supabaseKey?.length || 0);
+console.log('[SUPABASE] - Node version:', process.version);
 
 if (!supabaseUrl || !supabaseKey) {
   console.log('[SUPABASE] ⚠ Environment variables not configured');
@@ -30,7 +31,15 @@ if (!supabaseUrl || !supabaseKey) {
 } else {
   try {
     console.log('[SUPABASE] Creating client with URL:', supabaseUrl.slice(0, 40));
-    supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // For Node.js < 22, provide WebSocket polyfill to avoid realtime errors
+    const clientOptions = {};
+    if (parseInt(process.version.slice(1).split('.')[0]) < 22) {
+      console.log('[SUPABASE] Node < 22 detected, disabling realtime to avoid WebSocket errors');
+      clientOptions.realtime = { disabled: true };
+    }
+    
+    supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
     isEnabled = true;
     console.log('[SUPABASE] ✓ Client object created');
     console.log('[SUPABASE] ✓ isEnabled set to:', isEnabled);
