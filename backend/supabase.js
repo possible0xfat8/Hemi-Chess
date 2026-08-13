@@ -11,6 +11,10 @@ const { calculateMatchElo } = require('./services/eloMath');
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
+// Declare these at module scope so they can be exported
+let supabase = null;
+let isEnabled = false;
+
 console.log('[SUPABASE] Initialization check:');
 console.log('[SUPABASE] - URL present:', !!supabaseUrl);
 console.log('[SUPABASE] - URL value:', supabaseUrl ? `${supabaseUrl.slice(0, 30)}...` : 'NOT SET');
@@ -20,20 +24,36 @@ console.log('[SUPABASE] - Key length:', supabaseKey?.length || 0);
 if (!supabaseUrl || !supabaseKey) {
   console.log('[SUPABASE] ⚠ Environment variables not configured');
   console.log('[SUPABASE] ⚠ Add SUPABASE_URL and SUPABASE_SERVICE_KEY to .env');
-  module.exports = { supabase: null, isEnabled: false };
 } else {
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('[SUPABASE] ✓ Client initialized successfully');
-    module.exports = { supabase, isEnabled: true };
+    supabase = createClient(supabaseUrl, supabaseKey);
+    isEnabled = true;
+    console.log('[SUPABASE] ✓ Client created, testing connection...');
+    
+    // Test the connection with a simple query
+    supabase
+      .from('players')
+      .select('count')
+      .limit(1)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('[SUPABASE] ✗ Connection test failed:', error.message);
+        } else {
+          console.log('[SUPABASE] ✓ Connection test successful');
+        }
+      })
+      .catch(err => {
+        console.error('[SUPABASE] ✗ Connection test error:', err.message);
+      });
   } catch (error) {
     console.error('[SUPABASE] ✗ Client initialization failed:', error.message);
-    module.exports = { supabase: null, isEnabled: false };
+    supabase = null;
+    isEnabled = false;
   }
 }
 
 // Re-export database functions using Supabase client
-const { supabase, isEnabled } = module.exports;
+// NOTE: Don't destructure here - we'll export at the bottom
 
 // Every new player starts here (database AND chain)
 const DEFAULT_ELO = 1200;
