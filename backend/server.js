@@ -128,7 +128,7 @@ app.get('/health', (req, res) => {
 app.get('/api/diagnostic', (req, res) => {
   res.json({
     status: 'online',
-    version: '9744a7e', // Git commit hash for tracking
+    version: '4a41ca9-websocket-fix', // Git commit hash for tracking
     timestamp: new Date().toISOString(),
     database: {
       enabled: dbEnabled,
@@ -145,7 +145,8 @@ app.get('/api/diagnostic', (req, res) => {
     },
     environment: {
       nodeEnv: process.env.NODE_ENV || 'development',
-      port: process.env.PORT || 3001
+      port: process.env.PORT || 3001,
+      nodeVersion: process.version
     }
   });
 });
