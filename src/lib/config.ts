@@ -9,7 +9,7 @@
  */
 export const DEFAULT_BACKEND_URL =
   (import.meta.env["VITE_BACKEND_URL"] as string | undefined) ??
-  "https://translator-readily-placement-scored.trycloudflare.com";
+  "https://hemi-chess-production.up.railway.app";
 
 function normalize(url: string): string {
   return url.trim().replace(/\/+$/, "");
