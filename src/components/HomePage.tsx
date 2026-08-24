@@ -83,7 +83,7 @@ const QUICK_ACTIONS = [
 const BOTTOM_NAV = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/play', icon: Gamepad2, label: 'Play' },
-  { to: '/leaderboard', icon: Trophy, label: 'Tournaments' },
+  { to: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
   { to: '/friends', icon: Users, label: 'Friends' },
   { to: '/profile', icon: User, label: 'Profile' },
 ] as const
@@ -91,22 +91,7 @@ const BOTTOM_NAV = [
 export function HomePage() {
   const { address, isConnected } = useAccount()
   const [stats, setStats] = useState<UserStats | null>(null)
-  const [activeGames] = useState<ActiveGame[]>([
-    {
-      game_id: '1',
-      opponent_name: 'DarkKnight',
-      opponent_elo: 1523,
-      your_turn: true,
-      time_remaining: 900,
-    },
-    {
-      game_id: '2',
-      opponent_name: 'IronBishop',
-      opponent_elo: 1498,
-      your_turn: false,
-      time_remaining: 720,
-    },
-  ])
+  const [activeGames, setActiveGames] = useState<ActiveGame[]>([])
 
   useEffect(() => {
     if (!isConnected || !address) return
@@ -194,23 +179,21 @@ export function HomePage() {
             </div>
 
             <div className="flex flex-wrap gap-2.5">
-              <button
-                onClick={handleQuickMatch}
-                disabled={!isConnected}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange px-5 text-sm font-bold text-[var(--bg-base)] transition-opacity hover:opacity-90 disabled:opacity-40"
+              <Link
+                to="/play"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange px-5 text-sm font-bold text-[var(--bg-base)] transition-opacity hover:opacity-90"
               >
                 <Gamepad2 className="h-4 w-4" />
                 Play Now
-              </button>
+              </Link>
 
-              <button
-                onClick={handleCreateRoom}
-                disabled={!isConnected}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line-strong bg-[var(--surface-strong)] px-5 text-sm font-bold text-ink backdrop-blur-sm transition-colors hover:border-orange/40 disabled:opacity-40"
+              <Link
+                to="/play"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line-strong bg-[var(--surface-strong)] px-5 text-sm font-bold text-ink backdrop-blur-sm transition-colors hover:border-orange/40"
               >
                 <Plus className="h-4 w-4" />
-                Create Room
-              </button>
+                Custom Game
+              </Link>
             </div>
           </div>
         </section>

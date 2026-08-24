@@ -1,21 +1,26 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useAccount } from 'wagmi';
 import { getSocket, registerPlayerOnline } from '@/lib/socket';
 import { getBackendUrl } from '@/lib/config';
-import { useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 
 export interface Notification {
   id: number;
-  recipient_id: string;
-  sender_id: string;
-  sender_username?: string;
-  sender_elo?: number;
-  sender_wallet?: string;
-  type: 'friend_request' | 'match_challenge' | 'friend_accepted' | 'system';
+  userId?: string | undefined;
+  recipient_id?: string | undefined;
+  sender_id?: string | undefined;
+  sender_username?: string | null | undefined;
+  sender_elo?: number | undefined;
+  sender_wallet?: string | undefined;
+  type: 'friend_request' | 'match_challenge' | 'friend_accepted' | 'challenge' | 'system' | 'game_result';
+  title?: string | undefined;
+  message?: string | undefined;
+  data?: any;
   status: 'unread' | 'read' | 'accepted' | 'declined' | 'expired';
-  data: any;
-  created_at: string;
-  read_at?: string;
+  createdAt?: string | undefined;
+  created_at?: string | undefined;
+  readAt?: string | undefined;
+  read_at?: string | undefined;
 }
 
 interface NotificationContextType {
@@ -43,9 +48,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     
     setLoading(true);
     try {
-      const apiUrl = typeof window !== 'undefined' 
-        ? localStorage.getItem('hemichess_backend_url') || 'http://localhost:3000'
-        : 'http://localhost:3000';
+      const apiUrl = getBackendUrl();
       
       const response = await fetch(`${apiUrl}/api/notifications/${address.toLowerCase()}`);
       
@@ -186,7 +189,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const handleChallengeError = (data: { error: string }) => {
       console.error('[CHALLENGE] Error:', data);
-      alert(data.error);
+      toast.error(data.error);
     };
 
     const handleMatchStarting = (data: {
@@ -256,10 +259,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!address) return;
     
     try {
-      const apiUrl = typeof window !== 'undefined' 
-        ? localStorage.getItem('hemichess_backend_url') || 'http://localhost:3000'
-        : 'http://localhost:3000';
-      
+      const apiUrl = getBackendUrl();
       const response = await fetch(`${apiUrl}/api/notifications/${notificationId}/read`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -284,10 +284,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!address) return;
     
     try {
-      const apiUrl = typeof window !== 'undefined' 
-        ? localStorage.getItem('hemichess_backend_url') || 'http://localhost:3000'
-        : 'http://localhost:3000';
-      
+      const apiUrl = getBackendUrl();
       const response = await fetch(`${apiUrl}/api/notifications/${notificationId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -315,10 +312,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!address) return;
     
     try {
-      const apiUrl = typeof window !== 'undefined' 
-        ? localStorage.getItem('hemichess_backend_url') || 'http://localhost:3000'
-        : 'http://localhost:3000';
-      
+      const apiUrl = getBackendUrl();
       const response = await fetch(`${apiUrl}/api/notifications/${notificationId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },

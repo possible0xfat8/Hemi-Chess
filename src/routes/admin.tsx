@@ -1,13 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy } from "react";
-import { ClientOnly } from "@/components/ClientOnly";
-
-const Web3Provider = lazy(() =>
-  import("@/lib/web3/Web3Provider").then((m) => ({ default: m.Web3Provider })),
-);
-const AdminClient = lazy(() =>
-  import("@/components/game/AdminClient").then((m) => ({ default: m.AdminClient })),
-);
+import { AdminClient } from "@/components/game/AdminClient";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -28,15 +20,5 @@ export const Route = createFileRoute("/admin")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: AdminPage,
+  component: AdminClient,
 });
-
-function AdminPage() {
-  return (
-    <ClientOnly fallback={<div className="min-h-screen bg-[#0B0E14]" />}>
-      <Web3Provider>
-        <AdminClient />
-      </Web3Provider>
-    </ClientOnly>
-  );
-}

@@ -137,7 +137,7 @@ app.get('/api/diagnostic', (req, res) => {
       supabaseKeyLength: process.env.SUPABASE_SERVICE_KEY?.length || 0
     },
     blockchain: {
-      settlementEnabled: isSettlementEnabled,
+      settlementEnabled: isSettlementEnabled(),
       oracleAddress: getOracleAddress()
     },
     storage: {
@@ -579,20 +579,6 @@ app.get('/api/game/:gameId', async (req, res) => {
       return res.status(404).json({ error: 'Game not found' });
     }
     res.json(gameDetails);
-  } catch (err) {
-    res.status(500).json({ error: 'Database error' });
-  }
-});
-
-app.get('/api/leaderboard', async (req, res) => {
-  if (!dbEnabled) {
-    return res.status(503).json({ error: 'Database not configured' });
-  }
-  
-  try {
-    const limit = parseInt(req.query.limit) || 100;
-    const leaderboard = await db.getLeaderboard(limit);
-    res.json(leaderboard);
   } catch (err) {
     res.status(500).json({ error: 'Database error' });
   }
@@ -1607,10 +1593,12 @@ setInterval(() => {
 }, 60000); // Every 1 minute
 
 // Game State Structure
-function createGameState(gameId, whitePlayerId, blackPlayerId) {
+function createGameState(gameId, whitePlayerId, blackPlayerId, timeControlMs = 600000) {
+  const initialTime = typeof timeControlMs === 'number' && timeControlMs > 0 ? timeControlMs : 600000;
   return {
     gameId,
     game: new Chess(),
+    timeControl: initialTime,
     players: {
       white: {
         id: whitePlayerId,
@@ -1618,7 +1606,7 @@ function createGameState(gameId, whitePlayerId, blackPlayerId) {
         walletAddress: null,
         socketId: null,
         connected: false,
-        timeLeft: 600000, // 10 minutes in ms
+        timeLeft: initialTime,
         lastMoveTime: Date.now(),
         elo: DEFAULT_ELO
       },
@@ -1628,7 +1616,7 @@ function createGameState(gameId, whitePlayerId, blackPlayerId) {
         walletAddress: null,
         socketId: null,
         connected: false,
-        timeLeft: 600000,
+        timeLeft: initialTime,
         lastMoveTime: Date.now(),
         elo: DEFAULT_ELO
       }
@@ -1643,6 +1631,44 @@ function createGameState(gameId, whitePlayerId, blackPlayerId) {
   };
 }
 
+// Active game clock monitoring (Flag fall / timeout detection)
+setInterval(() => {
+  const now = Date.now();
+  for (const [gameId, gameState] of activeGames.entries()) {
+    if (gameState.status === 'active' && gameState.game && gameState.players) {
+      const currentTurn = gameState.game.turn(); // 'w' or 'b'
+      const activeColor = currentTurn === 'w' ? 'white' : 'black';
+      const opponentColor = currentTurn === 'w' ? 'black' : 'white';
+      const activePlayer = gameState.players[activeColor];
+      
+      // Only deduct time if at least one move has occurred or both players are connected
+      if (activePlayer && activePlayer.lastMoveTime && (gameState.moveHistory.length > 0 || (gameState.players.white.connected && gameState.players.black.connected))) {
+        const elapsed = now - activePlayer.lastMoveTime;
+        const currentRemaining = activePlayer.timeLeft - elapsed;
+        
+        if (currentRemaining <= 0) {
+          activePlayer.timeLeft = 0;
+          gameState.status = 'completed';
+          const winner = opponentColor;
+          const reason = 'timeout';
+          gameState.result = { winner, reason };
+          metrics.totalGamesCompleted++;
+          
+          console.log(`[TIMEOUT] Game ${gameId}: ${activeColor} timed out. ${winner} wins!`);
+          
+          io.to(gameId).emit('game_over', {
+            winner,
+            reason,
+            finalFen: gameState.game.fen()
+          });
+          
+          handleGameSettlement(gameState);
+        }
+      }
+    }
+  }
+}, 1000);
+
 // Function to match two players from queue
 async function tryMatchPlayers() {
   // Match multiple pairs if queue is large enough
@@ -1650,13 +1676,15 @@ async function tryMatchPlayers() {
     const player1 = matchmakingQueue.shift();
     const player2 = matchmakingQueue.shift();
 
+    const timeControl = player1.timeControl || player2.timeControl || 600000;
+
     // Randomly assign colors
     const [whitePlayer, blackPlayer] = Math.random() < 0.5 
       ? [player1, player2] 
       : [player2, player1];
 
     const gameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const gameState = createGameState(gameId, whitePlayer.playerId, blackPlayer.playerId);
+    const gameState = createGameState(gameId, whitePlayer.playerId, blackPlayer.playerId, timeControl);
 
     gameState.players.white.socketId = whitePlayer.socketId;
     gameState.players.white.connected = true;
@@ -1675,7 +1703,7 @@ async function tryMatchPlayers() {
       walletToGame.set(blackPlayer.walletAddress.toLowerCase(), gameId);
     }
 
-    // Initialize ELO ratings from smart contract (MUST happen before emitting game_found)
+    // Initialize ELO ratings from database (MUST happen before emitting game_found)
     await initializePlayerElo(gameState);
 
     activeGames.set(gameId, gameState);
@@ -1702,7 +1730,7 @@ async function tryMatchPlayers() {
       blackAvatarUrl = blackStats?.avatar_url || null;
     }
 
-    // Notify both players with ELO data and avatar URLs
+    // Notify both players with ELO data, avatar URLs, and exact time control
     if (whiteSocket) {
       whiteSocket.emit('game_found', {
         gameId,
@@ -1713,10 +1741,11 @@ async function tryMatchPlayers() {
           avatar: blackAvatarUrl
         },
         fen: gameState.game.fen(),
-        timeLeft: 600000,
-        opponentTimeLeft: 600000,
+        timeLeft: gameState.players.white.timeLeft,
+        opponentTimeLeft: gameState.players.black.timeLeft,
         myElo: gameState.players.white.elo || DEFAULT_ELO,
-        myAvatar: whiteAvatarUrl
+        myAvatar: whiteAvatarUrl,
+        timeControl
       });
     }
 
@@ -1730,14 +1759,15 @@ async function tryMatchPlayers() {
           avatar: whiteAvatarUrl
         },
         fen: gameState.game.fen(),
-        timeLeft: 600000,
-        opponentTimeLeft: 600000,
+        timeLeft: gameState.players.black.timeLeft,
+        opponentTimeLeft: gameState.players.white.timeLeft,
         myElo: gameState.players.black.elo || DEFAULT_ELO,
-        myAvatar: blackAvatarUrl
+        myAvatar: blackAvatarUrl,
+        timeControl
       });
     }
 
-    console.log(`✓ Match #${metrics.totalGamesCreated}: ${whitePlayer.playerName} (W) vs ${blackPlayer.playerName} (B)`);
+    console.log(`✓ Match #${metrics.totalGamesCreated}: ${whitePlayer.playerName} (W) vs ${blackPlayer.playerName} (B) [${timeControl / 60000}m]`);
   }
   
   console.log(`Queue: ${matchmakingQueue.length} | Active Games: ${activeGames.size}`);
@@ -1968,6 +1998,9 @@ async function handleGameSettlement(gameState) {
     io.to(gameState.gameId).emit('settlement_complete', {
       success: true,
       onChain: false,
+      gameId: gameState.gameId,
+      whiteAddress,
+      blackAddress,
       whiteResult: { oldElo: whiteEloBefore, newElo: whiteEloAfter, change: dbResult.whiteChange },
       blackResult: { oldElo: blackEloBefore, newElo: blackEloAfter, change: dbResult.blackChange },
     });
@@ -1991,6 +2024,9 @@ async function handleGameSettlement(gameState) {
     io.to(gameState.gameId).emit('settlement_complete', {
       success: true,
       onChain: onChainOk,
+      gameId: gameState.gameId,
+      whiteAddress,
+      blackAddress,
       whiteResult: {
         oldElo: whiteEloBefore,
         newElo: whiteEloAfter,
@@ -2019,6 +2055,9 @@ async function handleGameSettlement(gameState) {
     io.to(gameState.gameId).emit('settlement_complete', {
       success: true,
       onChain: false,
+      gameId: gameState.gameId,
+      whiteAddress,
+      blackAddress,
       error: err.message || 'On-chain sync failed (rating is safe in the database)',
       whiteResult: { oldElo: whiteEloBefore, newElo: whiteEloAfter, change: dbResult.whiteChange },
       blackResult: { oldElo: blackEloBefore, newElo: blackEloAfter, change: dbResult.blackChange },
@@ -2124,11 +2163,11 @@ io.on('connection', (socket) => {
 
   // Join matchmaking queue
   socket.on('find_match', async (playerData) => {
-    const { playerId, playerName, walletAddress } = playerData;
+    const { playerId, playerName, walletAddress, timeControl } = playerData || {};
     
     // Use wallet address as primary identifier if provided
     const effectivePlayerId = walletAddress ? walletAddress.toLowerCase() : playerId;
-    const effectiveName = playerName || `${effectivePlayerId.slice(0, 6)}...${effectivePlayerId.slice(-4)}`;
+    const effectiveName = playerName || `${effectivePlayerId ? `${effectivePlayerId.slice(0, 6)}...${effectivePlayerId.slice(-4)}` : 'Player'}`;
     
     console.log(`[MATCH] Player ${effectiveName} (${effectivePlayerId.slice(0, 8)}) requesting match`);
     
@@ -2166,6 +2205,12 @@ io.on('connection', (socket) => {
         foundActiveGame = true;
         gameState.players[color].socketId = socket.id;
         gameState.players[color].connected = true;
+
+        if (disconnectTimers.has(gameId)) {
+          clearTimeout(disconnectTimers.get(gameId));
+          disconnectTimers.delete(gameId);
+          console.log(`[DISCONNECT] Cleared disconnect timer for game ${gameId} on reconnect`);
+        }
         
         // Fetch avatar URLs
         let myAvatarUrl = null;
@@ -2196,7 +2241,8 @@ io.on('connection', (socket) => {
           timeLeft: gameState.players[color].timeLeft,
           opponentTimeLeft: gameState.players[otherColor].timeLeft,
           myElo: gameState.players[color].elo || DEFAULT_ELO,
-          myAvatar: myAvatarUrl
+          myAvatar: myAvatarUrl,
+          timeControl: gameState.timeControl || 600000
         });
         
         console.log(`[RECONNECT] ${effectiveName} reconnected to game ${gameId} as ${color}`);
@@ -2216,6 +2262,7 @@ io.on('connection', (socket) => {
         playerId: effectivePlayerId,
         walletAddress: walletAddress || null,
         playerName: effectiveName,
+        timeControl: timeControl || 600000,
         joinedAt: Date.now()
       });
 
@@ -2293,6 +2340,25 @@ io.on('connection', (socket) => {
         gameState.players[colorName].timeLeft -= timeTaken;
         gameState.players[opponentColor].lastMoveTime = now;
         gameState.lastActivity = now;
+
+        if (gameState.players[colorName].timeLeft <= 0) {
+          gameState.players[colorName].timeLeft = 0;
+          gameState.status = 'completed';
+          const winner = opponentColor;
+          const reason = 'timeout';
+          gameState.result = { winner, reason };
+          metrics.totalGamesCompleted++;
+
+          io.to(gameId).emit('game_over', {
+            winner,
+            reason,
+            finalFen: gameState.game.fen()
+          });
+
+          console.log(`[END] Game ${gameId}: winner=${winner}, reason=${reason}`);
+          handleGameSettlement(gameState);
+          return;
+        }
 
         // Record move
         gameState.moveHistory.push({
@@ -2831,9 +2897,22 @@ io.on('connection', (socket) => {
     // Update socket ID and join room
     gameState.players[playerColor].socketId = socket.id;
     gameState.players[playerColor].connected = true;
+
+    if (disconnectTimers.has(gameId)) {
+      clearTimeout(disconnectTimers.get(gameId));
+      disconnectTimers.delete(gameId);
+      console.log(`[DISCONNECT] Cleared disconnect timer for game ${gameId} on join_game_room`);
+    }
+
     socket.join(gameId);
     
     console.log(`[ROOM] Player ${playerId.slice(0, 8)} (${playerColor}) joined room ${gameId}, socket: ${socket.id}`);
+    
+    // Notify opponent of reconnection
+    const otherColor = playerColor === 'white' ? 'black' : 'white';
+    if (gameState.players[otherColor]?.connected) {
+      io.to(gameId).emit('opponent_reconnected', { color: playerColor });
+    }
     
     // Send current board state
     socket.emit('board_state', {
@@ -3188,14 +3267,17 @@ async function autoSyncOnStartup() {
   try {
     // Get all players from database
     const players = await db.listPlayers(100);
-    const addresses = players.map(p => p.wallet_address).filter(Boolean);
+    const { isAddress } = require('viem');
+    const addresses = players
+      .map(p => p.wallet_address)
+      .filter(addr => addr && typeof addr === 'string' && isAddress(addr));
 
     if (addresses.length === 0) {
-      console.log('[AUTO-SYNC] No players found to sync');
+      console.log('[AUTO-SYNC] No players with valid wallet addresses found to sync');
       return;
     }
 
-    console.log(`[AUTO-SYNC] Found ${addresses.length} players, checking sync status...`);
+    console.log(`[AUTO-SYNC] Found ${addresses.length} valid player addresses, checking sync status...`);
 
     // Check which players need sync
     const needsSyncList = [];

@@ -1,13 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy } from "react";
-import { ClientOnly } from "@/components/ClientOnly";
-
-const Web3Provider = lazy(() =>
-  import("@/lib/web3/Web3Provider").then((m) => ({ default: m.Web3Provider })),
-);
-const PlayClient = lazy(() =>
-  import("@/components/game/PlayClient").then((m) => ({ default: m.PlayClient })),
-);
+import { PlayClient } from "@/components/game/PlayClient";
 
 export const Route = createFileRoute("/play")({
   head: () => ({
@@ -20,15 +12,5 @@ export const Route = createFileRoute("/play")({
       },
     ],
   }),
-  component: PlayPage,
+  component: PlayClient,
 });
-
-function PlayPage() {
-  return (
-    <ClientOnly fallback={<div className="min-h-screen bg-[#0B0E14]" />}>
-      <Web3Provider>
-        <PlayClient />
-      </Web3Provider>
-    </ClientOnly>
-  );
-}

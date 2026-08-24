@@ -8,6 +8,7 @@ import { DEFAULT_ELO } from '@/hooks/useUserStats';
 import { Copy, Check, UserPlus, Loader2, UserCheck } from 'lucide-react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 interface UserProfileClientProps {
   walletAddress: string;
@@ -100,15 +101,15 @@ export function UserProfileClient({ walletAddress }: UserProfileClientProps) {
       });
       
       if (response.ok) {
-        alert('Friend request sent!');
+        toast.success('Friend request sent!');
         setIsFriend(true);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to send friend request');
+        toast.error(error.error || 'Failed to send friend request');
       }
     } catch (error) {
       console.error('Error sending friend request:', error);
-      alert('Failed to send friend request');
+      toast.error('Failed to send friend request');
     } finally {
       setSendingRequest(false);
     }

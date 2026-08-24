@@ -2,8 +2,8 @@ import { useNavigate } from '@tanstack/react-router';
 
 interface ClickableUsernameProps {
   username: string;
-  walletAddress: string;
-  className?: string;
+  walletAddress?: string | undefined;
+  className?: string | undefined;
   children?: React.ReactNode;
 }
 
@@ -16,7 +16,9 @@ export function ClickableUsername({ username, walletAddress, className = '', chi
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate({ to: '/user/$address', params: { address: walletAddress } });
+    if (walletAddress) {
+      navigate({ to: '/user/$address', params: { address: walletAddress } });
+    }
   };
 
   return (

@@ -12,7 +12,11 @@ export interface UserStats {
   draws: number
   total_games: number
   win_rate: number
-  username?: string | null
+  username?: string | null | undefined
+  avatar_url?: string | null | undefined
+  wallet_address?: string | undefined
+  is_online?: boolean | undefined
+  last_seen?: string | undefined
 }
 
 

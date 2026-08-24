@@ -28,12 +28,21 @@ export function SettlementToast() {
       }])
     }
 
-    const handleSettlementComplete = ({ whiteResult, blackResult }: any) => {
+    const handleSettlementComplete = (data: any) => {
       if (!address) return
+      const { whiteResult, blackResult, whiteAddress, blackAddress } = data || {}
 
       // Determine which result belongs to the current user
-      // This is a simplified approach - ideally we'd track this per game
-      const myResult = whiteResult || blackResult
+      const myAddress = address.toLowerCase()
+      let myResult = whiteResult
+      if (blackAddress && myAddress === blackAddress.toLowerCase()) {
+        myResult = blackResult
+      } else if (whiteAddress && myAddress === whiteAddress.toLowerCase()) {
+        myResult = whiteResult
+      } else {
+        myResult = blackResult || whiteResult
+      }
+
       const change = myResult?.change || 0
       const oldElo = myResult?.oldElo || 0
       const newElo = myResult?.newElo || 0

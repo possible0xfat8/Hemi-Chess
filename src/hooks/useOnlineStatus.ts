@@ -6,8 +6,8 @@ import { getBackendUrl } from '@/lib/config';
 interface UserOnlineStatus {
   walletAddress: string;
   is_online: boolean;
-  last_seen?: string;
-  online_status?: 'online' | 'offline' | 'appear_offline';
+  last_seen?: string | undefined;
+  online_status?: ('online' | 'offline' | 'appear_offline') | undefined;
 }
 
 interface OnlineStatusMap {
@@ -18,7 +18,7 @@ interface OnlineStatusMap {
  * Hook to track real-time online status of users
  * Subscribes to WebSocket events for instant updates
  */
-export function useOnlineStatus(walletAddresses?: string[]) {
+export function useOnlineStatus(walletAddresses?: string[] | undefined) {
   const [onlineStatuses, setOnlineStatuses] = useState<OnlineStatusMap>({});
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +35,7 @@ export function useOnlineStatus(walletAddresses?: string[]) {
             const response = await fetch(`${apiUrl}/api/user/${addr.toLowerCase()}/status`);
             if (response.ok) {
               const data = await response.json();
-              return { walletAddress: addr.toLowerCase(), ...data };
+              return { walletAddress: addr.toLowerCase(), is_online: Boolean(data.is_online), ...data };
             }
           } catch (error) {
             console.error(`Failed to fetch status for ${addr}:`, error);
@@ -47,7 +47,12 @@ export function useOnlineStatus(walletAddresses?: string[]) {
       const statusMap: OnlineStatusMap = {};
       results.forEach(status => {
         if (status) {
-          statusMap[status.walletAddress] = status;
+          statusMap[status.walletAddress] = {
+            walletAddress: status.walletAddress,
+            is_online: Boolean(status.is_online),
+            ...(status.last_seen ? { last_seen: status.last_seen } : {}),
+            ...(status.online_status ? { online_status: status.online_status } : {}),
+          };
         }
       });
       
@@ -72,26 +77,37 @@ export function useOnlineStatus(walletAddresses?: string[]) {
     if (!socket) return;
 
     const handleStatusChange = (data: { walletAddress: string; is_online: boolean; timestamp: number }) => {
-      setOnlineStatuses(prev => ({
-        ...prev,
-        [data.walletAddress.toLowerCase()]: {
-          walletAddress: data.walletAddress.toLowerCase(),
+      const addr = data.walletAddress.toLowerCase();
+      setOnlineStatuses(prev => {
+        const existing = prev[addr];
+        const updated: UserOnlineStatus = {
+          walletAddress: addr,
           is_online: data.is_online,
-          last_seen: data.is_online ? undefined : new Date(data.timestamp).toISOString(),
-          online_status: prev[data.walletAddress.toLowerCase()]?.online_status,
-        }
-      }));
+          ...(data.is_online ? {} : { last_seen: new Date(data.timestamp).toISOString() }),
+          ...(existing?.online_status ? { online_status: existing.online_status } : {}),
+        };
+        return {
+          ...prev,
+          [addr]: updated,
+        };
+      });
     };
 
     const handleStatusPreferenceChange = (data: { walletAddress: string; statusPreference: string; timestamp: number }) => {
-      setOnlineStatuses(prev => ({
-        ...prev,
-        [data.walletAddress.toLowerCase()]: {
-          ...prev[data.walletAddress.toLowerCase()],
-          walletAddress: data.walletAddress.toLowerCase(),
+      const addr = data.walletAddress.toLowerCase();
+      setOnlineStatuses(prev => {
+        const existing = prev[addr];
+        const updated: UserOnlineStatus = {
+          walletAddress: addr,
+          is_online: existing?.is_online ?? false,
+          ...(existing?.last_seen ? { last_seen: existing.last_seen } : {}),
           online_status: data.statusPreference as 'online' | 'offline' | 'appear_offline',
-        }
-      }));
+        };
+        return {
+          ...prev,
+          [addr]: updated,
+        };
+      });
     };
 
     socket.on('user_status_changed', handleStatusChange);

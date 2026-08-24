@@ -3,6 +3,8 @@ import { useAccount } from 'wagmi'
 import { useEffect, useState } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { BlockchainSyncPanel } from '@/components/admin/BlockchainSyncPanel'
+import { toast } from 'sonner'
+import { Link } from '@tanstack/react-router'
 
 const ADMIN_WALLETS = ((import.meta.env['VITE_ADMIN_WALLETS'] as string | undefined) || '')
   .split(',')
@@ -60,32 +62,48 @@ export function AdminClient() {
   }
 
   const clearCompletedGames = async () => {
-    if (!confirm('Clear all completed games?')) return
+    if (!address || !confirm('Clear all completed games?')) return
     
     try {
       const res = await fetch(`${getBackendUrl()}/admin/clear-completed`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-wallet': address.toLowerCase(),
+        },
       })
       const data = await res.json()
-      alert(`Cleared ${data.cleared} completed games`)
+      if (res.ok) {
+        toast.success(`Cleared ${data.cleared ?? 0} completed games`)
+      } else {
+        toast.error(data.error || 'Failed to clear games')
+      }
       loadStats()
     } catch (err) {
-      alert('Failed to clear games')
+      toast.error('Failed to clear games')
     }
   }
 
   const clearAllGames = async () => {
-    if (!confirm('This will disconnect ALL active players. Continue?')) return
+    if (!address || !confirm('This will disconnect ALL active players. Continue?')) return
     
     try {
       const res = await fetch(`${getBackendUrl()}/admin/clear-games`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-wallet': address.toLowerCase(),
+        },
       })
       const data = await res.json()
-      alert(`Cleared ${data.cleared} games`)
+      if (res.ok) {
+        toast.success(`Cleared ${data.cleared ?? 0} games`)
+      } else {
+        toast.error(data.error || 'Failed to clear games')
+      }
       loadStats()
     } catch (err) {
-      alert('Failed to clear games')
+      toast.error('Failed to clear games')
     }
   }
 
@@ -103,15 +121,15 @@ export function AdminClient() {
               </div>
               <h1 className="text-3xl font-extrabold text-red-400 mb-3 tracking-tight">Admin Access</h1>
               <p className="text-slate-400 mb-8">Connect your wallet to access the admin panel</p>
-              <a
-                href="/"
+              <Link
+                to="/"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700 text-slate-200 rounded-xl font-semibold transition-all"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Back to Game
-              </a>
+              </Link>
             </div>
           </div>
         </main>

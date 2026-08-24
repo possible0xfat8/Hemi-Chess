@@ -6,7 +6,7 @@
  * directions (mint when chain is behind, burn when chain is ahead).
  */
 
-const { createPublicClient, http, formatEther } = require('viem');
+const { createPublicClient, http, formatEther, isAddress, getAddress } = require('viem');
 const { readEloBalance, adjustEloOnChain, batchAdjustEloOnChain, isSettlementEnabled } = require('./matchSettlement');
 
 // Default rating every new player starts with (database + chain)
@@ -35,6 +35,9 @@ const publicClient = createPublicClient({
  * @returns {Promise<number>}
  */
 async function readOnChainElo(walletAddress) {
+  if (!walletAddress || typeof walletAddress !== 'string' || !isAddress(walletAddress)) {
+    return 0;
+  }
   const balance = await readEloBalance(walletAddress);
   return Number(formatEther(balance));
 }
@@ -47,6 +50,17 @@ async function readOnChainElo(walletAddress) {
  * @returns {Promise<{address:string,databaseElo:number,onChainElo:number,difference:number,inSync:boolean,needsSync:boolean}>}
  */
 async function getSyncStatus(walletAddress, databaseElo) {
+  if (!walletAddress || typeof walletAddress !== 'string' || !isAddress(walletAddress)) {
+    return {
+      address: walletAddress || 'invalid',
+      databaseElo: Math.round(databaseElo ?? DEFAULT_ELO),
+      onChainElo: 0,
+      difference: 0,
+      inSync: true,
+      needsSync: false,
+    };
+  }
+
   const onChainElo = await readOnChainElo(walletAddress);
   const dbElo = Math.round(databaseElo ?? DEFAULT_ELO);
   const difference = Math.round(dbElo - onChainElo);
@@ -70,6 +84,14 @@ async function getSyncStatus(walletAddress, databaseElo) {
  * @returns {Promise<{address:string,success:boolean,skipped?:boolean,onChainBefore?:number,databaseElo?:number,adjustment?:string,expectedAfter?:number,txHash?:string|null,error?:string,message?:string}>}
  */
 async function reconcilePlayer(walletAddress, databaseElo) {
+  if (!walletAddress || typeof walletAddress !== 'string' || !isAddress(walletAddress)) {
+    return {
+      address: walletAddress || 'invalid',
+      success: false,
+      error: `Invalid wallet address: ${walletAddress}`,
+    };
+  }
+
   if (!isSettlementEnabled()) {
     return {
       address: walletAddress.toLowerCase(),

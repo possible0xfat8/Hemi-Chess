@@ -23,7 +23,7 @@ export function OnlineStatusToggle() {
     },
   ];
 
-  const currentStatus = statusOptions.find(s => s.value === statusPreference) || statusOptions[0];
+  const currentStatus = statusOptions.find(s => s.value === statusPreference) ?? statusOptions[0]!;
 
   return (
     <div className="relative">

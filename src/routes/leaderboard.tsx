@@ -1,19 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy } from "react";
-import { ClientOnly } from "@/components/ClientOnly";
-
-const Web3Provider = lazy(() =>
-  import("@/lib/web3/Web3Provider").then((m) => ({ default: m.Web3Provider })),
-);
-const Navbar = lazy(() =>
-  import("@/components/Navbar").then((m) => ({ default: m.Navbar })),
-);
-const Footer = lazy(() =>
-  import("@/components/Footer").then((m) => ({ default: m.Footer })),
-);
-const Leaderboard = lazy(() =>
-  import("@/components/Leaderboard").then((m) => ({ default: m.Leaderboard })),
-);
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { Leaderboard } from "@/components/Leaderboard";
 
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
@@ -38,24 +26,20 @@ export const Route = createFileRoute("/leaderboard")({
 
 function LeaderboardPage() {
   return (
-    <ClientOnly fallback={<div className="min-h-screen bg-canvas" />}>
-      <Web3Provider>
-        <div className="min-h-screen bg-canvas flex flex-col">
-          <Navbar />
+    <div className="min-h-screen bg-canvas flex flex-col">
+      <Navbar />
 
-          <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex-1">
-            <div className="mb-4 sm:mb-6">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Leaderboard
-              </h1>
-            </div>
-
-            <Leaderboard />
-          </main>
-
-          <Footer />
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex-1">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Leaderboard
+          </h1>
         </div>
-      </Web3Provider>
-    </ClientOnly>
+
+        <Leaderboard />
+      </main>
+
+      <Footer />
+    </div>
   );
 }

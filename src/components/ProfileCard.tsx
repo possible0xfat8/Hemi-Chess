@@ -6,8 +6,8 @@ import { useState } from 'react'
 import { HeloExplanationModal } from './HeloExplanationModal'
 
 interface ProfileCardProps {
-  isActive?: boolean
-  isAdmin?: boolean
+  isActive?: boolean | undefined
+  isAdmin?: boolean | undefined
 }
 
 /**

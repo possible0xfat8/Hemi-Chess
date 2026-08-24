@@ -3,6 +3,7 @@ import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { X, Users, Eye } from 'lucide-react';
 import { getSocket } from '@/lib/socket';
+import { toast } from 'sonner';
 
 interface SpectatorViewProps {
   gameId: string;
@@ -22,126 +23,61 @@ function SpectatorViewComponent({ gameId, whitePlayer, blackPlayer, onClose }: S
   const [connected, setConnected] = useState(false);
   const [currentTurn, setCurrentTurn] = useState<'w' | 'b'>('w');
 
-  // Function to rebuild board position from move history
-  const rebuildBoardFromMoves = (moves: any[]) => {
-    if (!moves || moves.length === 0) {
-      console.log('[SPECTATE] 📋 No moves to rebuild, using starting position');
-      setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-      setCurrentTurn('w');
-      return true;
-    }
-
-    console.log('[SPECTATE] 📋 Rebuilding board from', moves.length, 'moves');
-    const chess = new Chess();
-    
-    try {
-      for (let i = 0; i < moves.length; i++) {
-        const moveData = moves[i];
-        
-        // Extract SAN notation from moveData
-        let sanMove: string | null = null;
-        if (typeof moveData === 'string') {
-          sanMove = moveData;
-        } else if (moveData.move && typeof moveData.move === 'string') {
-          sanMove = moveData.move;
-        } else if (moveData.san) {
-          sanMove = moveData.san;
-        }
-        
-        if (!sanMove) {
-          console.error(`[SPECTATE] ❌ Move ${i + 1}: Invalid format, no SAN found:`, moveData);
-          return false;
-        }
-        
-        console.log(`[SPECTATE] Move ${i + 1}: Applying "${sanMove}"`);
-        const result = chess.move(sanMove);
-        
-        if (!result) {
-          console.error(`[SPECTATE] ❌ Move ${i + 1}: Failed to apply "${sanMove}"`);
-          console.error('[SPECTATE] Current board FEN:', chess.fen());
-          return false;
-        }
-        
-        console.log(`[SPECTATE] ✅ Move ${i + 1}: Applied "${sanMove}" -> FEN:`, chess.fen());
-      }
-      
-      const finalFen = chess.fen();
-      console.log('[SPECTATE] ✅ Rebuild complete! Final FEN:', finalFen);
-      console.log('[SPECTATE] Setting state with', moves.length, 'moves applied');
-      
-      setFen(finalFen);
-      setCurrentTurn(chess.turn());
-      
-      return true;
-    } catch (error) {
-      console.error('[SPECTATE] ❌ Exception during rebuild:', error);
-      return false;
-    }
-  };
-
   useEffect(() => {
     const socket = getSocket();
+    if (!socket) return;
     
     console.log('[SPECTATE] Mounting - joining game:', gameId);
-    console.log('[SPECTATE] Player data:', { whitePlayer, blackPlayer });
     
     // Join as spectator
     socket.emit('spectate_game', { gameId });
     
     const handleSpectateJoined = (data: any) => {
-      console.log('[SPECTATE] ✅ Joined successfully:', data);
+      console.log('[SPECTATE] Joined successfully:', data);
       setConnected(true);
       setWhiteTime(data.whiteTime || 600000);
       setBlackTime(data.blackTime || 600000);
       setSpectatorCount(data.spectatorCount || 0);
       
-      // Store move history and rebuild board
+      if (data.fen) {
+        setFen(data.fen);
+        try {
+          const chess = new Chess(data.fen);
+          setCurrentTurn(chess.turn());
+        } catch {
+          // ignore
+        }
+      }
       if (Array.isArray(data.moveHistory)) {
         setMoveHistory(data.moveHistory);
-        rebuildBoardFromMoves(data.moveHistory);
-      } else {
-        // No moves yet, use starting position
-        setFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        setCurrentTurn('w');
       }
     };
     
     const handleBoardState = (data: any) => {
-      console.log('[SPECTATE] 🔄 Board update received:', {
-        historyLength: data.moveHistory?.length,
-        lastMove: data.lastMove,
-        fen: data.fen,
-        timestamp: new Date().toISOString()
-      });
-      
       setWhiteTime(data.whiteTime || 600000);
       setBlackTime(data.blackTime || 600000);
       
-      // Store last move for highlighting
       if (data.lastMove) {
-        console.log('[SPECTATE] Setting last move:', data.lastMove);
         setLastMove(data.lastMove);
       }
       
-      // Update move history and rebuild board from moves
+      if (data.fen) {
+        setFen(data.fen);
+        try {
+          const chess = new Chess(data.fen);
+          setCurrentTurn(chess.turn());
+        } catch {
+          // ignore
+        }
+      }
       if (Array.isArray(data.moveHistory)) {
         setMoveHistory(data.moveHistory);
-        const success = rebuildBoardFromMoves(data.moveHistory);
-        if (!success) {
-          console.error('[SPECTATE] ❌ Failed to rebuild board, trying FEN fallback');
-          // Fallback to FEN if rebuild fails
-          if (data.fen) {
-            setFen(data.fen);
-            const chess = new Chess(data.fen);
-            setCurrentTurn(chess.turn());
-          }
-        }
       }
     };
     
     const handleSpectateError = ({ error }: { error: string }) => {
-      console.error('[SPECTATE] ❌ Error:', error);
-      alert(error);
+      console.error('[SPECTATE] Error:', error);
+      toast.error(error);
       onClose();
     };
     

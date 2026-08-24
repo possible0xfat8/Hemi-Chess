@@ -6,12 +6,13 @@ import { formatDistanceToNow } from 'date-fns';
 import { Avatar } from '@/components/Avatar';
 import { ClickableUsername } from '@/components/ClickableUsername';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { toast } from 'sonner';
 
 interface Friend {
   friendship_id: number;
   friend_id: string;
   username: string;
-  avatar_url?: string;
+  avatar_url?: string | null | undefined;
   elo_rating: number;
   wallet_address: string;
   total_games: number;
@@ -19,37 +20,38 @@ interface Friend {
   last_active: string;
   friendship_since: string;
   status: string;
-  online?: boolean;
+  online?: boolean | undefined;
 }
 
 interface SearchResult {
   player_id: string;
   username: string;
-  avatar_url?: string;
+  avatar_url?: string | null | undefined;
   elo_rating: number;
   wallet_address: string;
   total_games: number;
-  wins: number;
-  online?: boolean;
+  is_friend: boolean;
+  has_pending_request: boolean;
+  online?: boolean | undefined;
 }
 
 export function FriendsList() {
   const { address, isConnected } = useAccount();
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [activeTab, setActiveTab] = useState<'friends' | 'search'>('friends');
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
 
-  // Track online status for friends
-  const friendWallets = friends.map(f => f.wallet_address);
-  const { isUserOnline, getLastSeen } = useOnlineStatus(friendWallets);
+  // Extract wallet addresses for real-time online status tracking
+  const friendAddresses = friends.map(f => f.wallet_address).filter(Boolean);
+  const { isUserOnline, getLastSeen } = useOnlineStatus(friendAddresses);
 
   // Fetch friends list
   const fetchFriends = async () => {
-    if (!isConnected || !address) return;
+    if (!address) return;
     
     setLoading(true);
     try {
@@ -67,28 +69,26 @@ export function FriendsList() {
     }
   };
 
-  // Search for players
+  // Search players
   const searchPlayers = async (query: string) => {
-    if (query.length < 2) {
+    if (!query.trim() || !address) {
       setSearchResults([]);
       return;
     }
-    
+
     setSearching(true);
     try {
       const apiUrl = getBackendUrl();
-      const response = await fetch(`${apiUrl}/api/players/search?q=${encodeURIComponent(query)}`);
+      const response = await fetch(
+        `${apiUrl}/api/players/search?query=${encodeURIComponent(query)}&userId=${address.toLowerCase()}`
+      );
       
       if (response.ok) {
         const data = await response.json();
-        // Filter out self
-        const filtered = data.filter((p: SearchResult) => 
-          p.player_id.toLowerCase() !== address?.toLowerCase()
-        );
-        setSearchResults(filtered);
+        setSearchResults(data);
       }
     } catch (error) {
-      console.error('[SEARCH] Error searching players:', error);
+      console.error('[FRIENDS] Error searching players:', error);
     } finally {
       setSearching(false);
     }
@@ -111,16 +111,16 @@ export function FriendsList() {
       });
       
       if (response.ok) {
-        alert('Friend request sent!');
+        toast.success('Friend request sent!');
         // Refresh search results
         searchPlayers(searchQuery);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to send friend request');
+        toast.error(error.error || 'Failed to send friend request');
       }
     } catch (error) {
       console.error('[FRIENDS] Error sending request:', error);
-      alert('Failed to send friend request');
+      toast.error('Failed to send friend request');
     } finally {
       setSendingRequest(null);
     }
@@ -142,10 +142,12 @@ export function FriendsList() {
       });
       
       if (response.ok) {
+        toast.success('Friend removed');
         fetchFriends();
       }
     } catch (error) {
       console.error('[FRIENDS] Error removing friend:', error);
+      toast.error('Failed to remove friend');
     }
   };
 
@@ -167,15 +169,15 @@ export function FriendsList() {
       
       if (response.ok) {
         const result = await response.json();
-        alert(`Challenge sent! Waiting for ${friendId.slice(0, 8)}... to accept.`);
+        toast.success(`Challenge sent! Waiting for response.`);
         console.log('[CHALLENGE] Sent:', result);
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to send challenge');
+        toast.error(error.error || 'Failed to send challenge');
       }
     } catch (error) {
       console.error('[CHALLENGE] Error sending challenge:', error);
-      alert('Failed to send challenge');
+      toast.error('Failed to send challenge');
     }
   };
 

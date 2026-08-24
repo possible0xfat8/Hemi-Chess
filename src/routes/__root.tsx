@@ -11,6 +11,8 @@ import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { WelcomeModal } from "../components/WelcomeModal";
+import { ClientOnly } from "../components/ClientOnly";
+import { Web3Provider } from "../lib/web3/Web3Provider";
 
 function NotFoundComponent() {
   return (
@@ -126,11 +128,15 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Welcome Modal - Shows once per browser session */}
-      <WelcomeModal />
-      
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ClientOnly fallback={<div className="min-h-screen bg-canvas" />}>
+        <Web3Provider>
+          {/* Welcome Modal - Shows once per browser session */}
+          <WelcomeModal />
+          
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </Web3Provider>
+      </ClientOnly>
     </QueryClientProvider>
   );
 }

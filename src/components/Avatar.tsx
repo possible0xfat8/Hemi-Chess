@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
 interface AvatarProps {
-  src?: string | null;
+  src?: string | null | undefined;
   alt: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  className?: string;
-  fallbackText?: string;
-  showOnline?: boolean;
-  isOnline?: boolean;
+  size?: ('xs' | 'sm' | 'md' | 'lg' | 'xl') | undefined;
+  className?: string | undefined;
+  fallbackText?: string | undefined;
+  showOnline?: boolean | undefined;
+  isOnline?: boolean | undefined;
 }
 
 const sizeClasses = {

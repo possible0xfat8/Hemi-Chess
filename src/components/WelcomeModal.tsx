@@ -65,7 +65,7 @@ export function WelcomeModal() {
 
   if (!isOpen) return null;
 
-  const currentStepData = ONBOARDING_STEPS[currentStep];
+  const currentStepData = ONBOARDING_STEPS[currentStep] ?? ONBOARDING_STEPS[0]!;
   const Icon = currentStepData.icon;
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1;
 

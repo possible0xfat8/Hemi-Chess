@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { getSocket } from '@/lib/socket';
 import { SettlementToast } from '@/components/SettlementToast';
 import { LearnChessModal } from '@/components/LearnChessModal';
@@ -23,6 +24,13 @@ import { useUserStats, useMatchHistory, DEFAULT_ELO } from '@/hooks/useUserStats
 import { usePlayerStats } from '@/hooks/useHemiChessElo';
 import { AlertTriangle, Crown, Scale, Flag, Handshake, List, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  playMoveSound,
+  playCaptureSound,
+  playCheckSound,
+  playGameStartSound,
+  playGameOverSound,
+} from '@/lib/chess/sounds';
 
 
 type GameState = 'menu' | 'finding' | 'playing' | 'finished';
@@ -336,6 +344,7 @@ export function PlayClient() {
       
       // We're already on the play page - set up game immediately
       console.log('[MATCH_STARTING] On play page, setting up game immediately');
+      playGameStartSound();
       setGameId(foundGameId);
       setOrientation(color);
       setOpponentName(opponent.name || 'Opponent');
@@ -370,6 +379,14 @@ export function PlayClient() {
       setFen(newFen);
       setLastMove(moveData || null);
       setMoveHistory(history || []);
+
+      if (newGame.inCheck()) {
+        playCheckSound();
+      } else if (moveData?.captured) {
+        playCaptureSound();
+      } else if (moveData) {
+        playMoveSound();
+      }
       
       if (orientation) {
         const currentTurn = newGame.turn();
@@ -388,6 +405,7 @@ export function PlayClient() {
 
     socket.on('game_over', ({ winner, reason, finalFen }) => {
       console.log('[GAME_OVER] Received:', { winner, reason, myOrientation: orientation });
+      playGameOverSound(winner === orientation);
       setGameState('finished');
       let message = '';
       if (winner === 'draw') {
@@ -625,6 +643,14 @@ export function PlayClient() {
         // Optimistic update
         setFen(gameCopy.fen());
         setGame(gameCopy);
+
+        if (gameCopy.inCheck()) {
+          playCheckSound();
+        } else if (moveResult.captured) {
+          playCaptureSound();
+        } else {
+          playMoveSound();
+        }
 
         if (socket) {
           socket.emit('make_move', {
@@ -978,18 +1004,18 @@ export function PlayClient() {
                   </div>
 
                   <div className="mt-6 flex gap-3">
-                    <a
-                      href="/profile"
-                      className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong"
+                    <Link
+                      to="/profile"
+                      className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong hover:bg-[var(--surface-hover)]"
                     >
                       View profile
-                    </a>
-                    <a
-                      href="/admin"
-                      className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong"
+                    </Link>
+                    <Link
+                      to="/leaderboard"
+                      className="flex-1 rounded-xl border border-line bg-[var(--surface-strong)] px-4 py-2.5 text-center text-sm font-medium text-ink transition-colors hover:border-line-strong hover:bg-[var(--surface-hover)]"
                     >
                       Leaderboard
-                    </a>
+                    </Link>
                   </div>
                 </section>
               </div>
@@ -1287,10 +1313,14 @@ export function PlayClient() {
                         />
                         <div className="mx-auto" style={{ maxWidth: '500px' }}>
                             <Chessboard
-                                position={fen}
-                                boardOrientation={orientation || 'white'}
-                                customSquareStyles={squareStyles}
-                                arePiecesDraggable={false}
+                                options={{
+                                    position: fen,
+                                    boardOrientation: orientation || 'white',
+                                    darkSquareStyle: { backgroundColor: 'var(--board-dark)' },
+                                    lightSquareStyle: { backgroundColor: 'var(--board-light)' },
+                                    showNotation: true,
+                                    squareStyles: squareStyles as never,
+                                }}
                             />
                         </div>
                         <PlayerCard

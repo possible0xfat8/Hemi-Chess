@@ -197,7 +197,7 @@ export function NotificationBell() {
                       )}
 
                       <p className="text-xs text-ink-faint">
-                        {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(notification.created_at || notification.createdAt || Date.now()), { addSuffix: true })}
                       </p>
 
                       {/* Action Buttons */}
@@ -239,7 +239,7 @@ export function NotificationBell() {
                               e.stopPropagation();
                               handleAcceptChallenge(
                                 notification.id, 
-                                notification.sender_id,
+                                notification.sender_id || notification.userId || '',
                                 notification.data?.challenge_id
                               );
                             }}

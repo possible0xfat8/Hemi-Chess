@@ -8,7 +8,7 @@
  * 4. Loser NEVER signs a transaction to burn their tokens
  */
 
-const { createPublicClient, createWalletClient, http, parseUnits } = require('viem');
+const { createPublicClient, createWalletClient, http, parseUnits, isAddress, getAddress } = require('viem');
 const { privateKeyToAccount } = require('viem/accounts');
 const { calculateMatchElo, getAbsoluteEloDelta } = require('./eloMath');
 
@@ -154,12 +154,16 @@ async function verifyMatchSignature(matchData, signature, expectedSigner) {
  * @returns {Promise<bigint>} Current Elo balance in wei
  */
 async function readEloBalance(playerAddress) {
+  if (!playerAddress || typeof playerAddress !== 'string' || !isAddress(playerAddress)) {
+    return 0n;
+  }
   try {
+    const formattedAddress = getAddress(playerAddress);
     const balance = await publicClient.readContract({
       address: HEMI_CHESS_ELO_ADDRESS,
       abi: HEMI_CHESS_ELO_ABI,
       functionName: 'balanceOf',
-      args: [playerAddress],
+      args: [formattedAddress],
     });
     return balance;
   } catch (err) {
@@ -184,11 +188,19 @@ async function adjustEloOnChain(playerAddress, delta, isWin) {
     };
   }
 
+  if (!playerAddress || typeof playerAddress !== 'string' || !isAddress(playerAddress)) {
+    return {
+      success: false,
+      error: `Invalid player address: ${playerAddress}`,
+    };
+  }
+
   try {
+    const formattedAddress = getAddress(playerAddress);
     // Convert delta to wei (18 decimals)
     const amount = parseUnits(delta.toString(), 18);
 
-    console.log(`[SETTLEMENT] Calling adjustElo(${playerAddress}, ${delta} $HELO, ${isWin ? 'MINT' : 'BURN'})`);
+    console.log(`[SETTLEMENT] Calling adjustElo(${formattedAddress}, ${delta} $HELO, ${isWin ? 'MINT' : 'BURN'})`);
 
     // Get current gas price with 50% buffer (increased from 20%)
     const gasPrice = await publicClient.getGasPrice();
@@ -202,7 +214,7 @@ async function adjustEloOnChain(playerAddress, delta, isWin) {
       address: HEMI_CHESS_ELO_ADDRESS,
       abi: HEMI_CHESS_ELO_ABI,
       functionName: 'adjustElo',
-      args: [playerAddress, amount, isWin],
+      args: [formattedAddress, amount, isWin],
       gasPrice: adjustedGasPrice,
     });
 
@@ -255,21 +267,23 @@ async function batchAdjustEloOnChain(adjustments) {
     };
   }
 
-  if (!adjustments || adjustments.length === 0) {
+  const validAdjustments = (adjustments || []).filter(adj => adj && adj.address && isAddress(adj.address));
+
+  if (validAdjustments.length === 0) {
     return {
       success: false,
-      error: 'No adjustments provided',
+      error: 'No valid adjustments provided',
     };
   }
 
   try {
     // Prepare batch arrays
-    const players = adjustments.map(adj => adj.address);
-    const amounts = adjustments.map(adj => parseUnits(adj.delta.toString(), 18));
-    const isWins = adjustments.map(adj => adj.isWin);
+    const players = validAdjustments.map(adj => getAddress(adj.address));
+    const amounts = validAdjustments.map(adj => parseUnits(adj.delta.toString(), 18));
+    const isWins = validAdjustments.map(adj => adj.isWin);
 
     console.log(`[SETTLEMENT] Calling batchAdjustElo for ${players.length} players`);
-    adjustments.forEach(adj => {
+    validAdjustments.forEach(adj => {
       console.log(`[SETTLEMENT]   ${adj.address.slice(0, 8)}... ${adj.isWin ? 'MINT' : 'BURN'} ${adj.delta}`);
     });
 
